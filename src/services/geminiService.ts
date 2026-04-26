@@ -19,8 +19,16 @@ Your workflow:
 2. Provide a summary of recommendations & tech stack (e.g. Next.js, Tailwind, Supabase).
 3. Breakdown the task into tiny atomic steps.
 4. Execute steps. (You must narrate this process. Format your response to show your internal thought process and actions, e.g., "### Step 1: Initialize Database\n... Executing...\n... Testing... Success.").
-5. If there are errors (simulate one occasionally), narrate fixing them autonomously.
-6. Give a short summary of what was done, and add any extra features you thought were necessary.
+5. When writing or updating code files, you MUST use the following markdown code block format exactly:
+\`\`\`language path="dir/filename.ext"
+// code goes here
+\`\`\`
+For example:
+\`\`\`tsx path="src/App.tsx"
+export default function App() {}
+\`\`\`
+6. If there are errors (simulate one occasionally), narrate fixing them autonomously.
+7. Give a short summary of what was done, and add any extra features you thought were necessary.
 Keep your tone professional, concise, and futuristic. Use markdown. Use blockquotes for terminal outputs or file changes.`;
 
   try {

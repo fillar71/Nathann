@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAgentStore, Message } from '../store/agentStore';
+import { useAgentStore, Message, FileNode } from '../store/agentStore';
 import { chatWithNathanStream } from '../services/geminiService';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -48,14 +48,12 @@ export default function ChatBox() {
       for await (const chunk of stream) {
          accumulatedText += chunk;
          updateMessage(modelMsgId, accumulatedText, true);
+         parseStreamAndApplyFiles(accumulatedText);
       }
       
       // Finishing stream
       updateMessage(modelMsgId, accumulatedText, false);
-      
-      // Simulate file update based on agent output
-      // (This is a mock behavior for the Vibe Architect effect)
-      simulateFileUpdates(accumulatedText);
+      parseStreamAndApplyFiles(accumulatedText);
 
     } catch (error: any) {
       updateMessage(modelMsgId, `**Error**: ${error.message}`, false);
@@ -64,22 +62,59 @@ export default function ChatBox() {
     }
   };
   
-  const simulateFileUpdates = (text: string) => {
-     // A simple mock: if text contains "### Step 1", we just update a file to make UI look alive
-     const setFiles = useAgentStore.getState().setFiles;
-     const files = useAgentStore.getState().files;
-     
-     // Very naive simulator
-     const newFiles = [...files];
-     const srcFolder = newFiles.find(f => f.name === 'src');
-     if (srcFolder && srcFolder.children) {
-        const appTsx = srcFolder.children.find(f => f.name === 'App.tsx');
-        if (appTsx) {
-           appTsx.content = `// Updated by Nathan-coder\n// at ${new Date().toLocaleTimeString()}\n\nexport default function App() {\n  return <div>New Generated Content</div>;\n}`;
+  const parseStreamAndApplyFiles = (text: string) => {
+    const setFiles = useAgentStore.getState().setFiles;
+    const files = useAgentStore.getState().files;
+    const setSelectedFile = useAgentStore.getState().setSelectedFile;
+
+    const regex = /```[a-z]*\s+path="([^"]+)"\n([\s\S]*?)(?:```|$)/g;
+    
+    let match;
+    const newFiles = JSON.parse(JSON.stringify(files));
+    
+    const updateFileHelper = (tree: FileNode[], pathParts: string[], content: string): { tree: FileNode[], fileNode: FileNode } => {
+        const [currentPart, ...rest] = pathParts;
+        if (rest.length === 0) {
+            let existingFileIndex = tree.findIndex(f => f.name === currentPart && f.type === 'file');
+            if (existingFileIndex >= 0) {
+                tree[existingFileIndex].content = content;
+                return { tree, fileNode: tree[existingFileIndex] };
+            } else {
+                const newNode: FileNode = { id: crypto.randomUUID(), name: currentPart, type: 'file', content };
+                tree.push(newNode);
+                return { tree, fileNode: newNode };
+            }
+        } else {
+            let existingFolderIndex = tree.findIndex(f => f.name === currentPart && f.type === 'folder');
+            if (existingFolderIndex < 0) {
+                const newFolder: FileNode = { id: crypto.randomUUID(), name: currentPart, type: 'folder', children: [], isOpen: true };
+                tree.push(newFolder);
+                existingFolderIndex = tree.length - 1;
+            }
+            const res = updateFileHelper(tree[existingFolderIndex].children || [], rest, content);
+            tree[existingFolderIndex].children = res.tree;
+            return { tree, fileNode: res.fileNode };
         }
-     }
-     setFiles(newFiles);
-  }
+    };
+
+    let lastFileNode: FileNode | null = null;
+    let found = false;
+    while ((match = regex.exec(text)) !== null) {
+        found = true;
+        const path = match[1];
+        const content = match[2];
+        const parts = path.split('/').filter(Boolean);
+        const res = updateFileHelper(newFiles, parts, content);
+        lastFileNode = res.fileNode;
+    }
+
+    if (found) {
+        setFiles(newFiles);
+        if (lastFileNode) {
+            setSelectedFile(lastFileNode);
+        }
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#0F1219] relative">
