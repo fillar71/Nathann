@@ -5,13 +5,24 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { ScrollArea } from './ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Send, Bot, User, Sparkles, Loader2, Save, FileCode2, Trash } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Loader2, Save, FileCode2, Trash, Settings2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+
+const PROVIDERS = [
+  { id: 'gemini', name: 'Gemini', models: ['gemini-2.5-flash', 'gemini-1.5-pro'] },
+  { id: 'openai', name: 'OpenAI (ChatGPT)', models: ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'] },
+  { id: 'groq', name: 'Groq', models: ['llama3-70b-8192', 'mixtral-8x7b-32768'] },
+  { id: 'deepseek', name: 'DeepSeek', models: ['deepseek-chat', 'deepseek-coder'] },
+  { id: 'mistral', name: 'Mistral', models: ['mistral-large-latest', 'mistral-small-latest'] },
+];
 
 export default function ChatBox() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showSnippets, setShowSnippets] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState(PROVIDERS[0]);
+  const [selectedModel, setSelectedModel] = useState(PROVIDERS[0].models[0]);
   const [previewSnippet, setPreviewSnippet] = useState<{ id: string; name: string; code: string } | null>(null);
   const [snippetToDelete, setSnippetToDelete] = useState<string | null>(null);
   
@@ -72,7 +83,7 @@ export default function ChatBox() {
       }
 
       let accumulatedText = "";
-      const stream = chatWithNathanStream(userMsg.content, history);
+      const stream = chatWithNathanStream(userMsg.content, history, selectedProvider.id, selectedModel);
       
       for await (const chunk of stream) {
          accumulatedText += chunk;
@@ -247,6 +258,14 @@ export default function ChatBox() {
           <div className="absolute bottom-3 left-3 flex items-center gap-2">
             <button 
               type="button"
+              onClick={() => setShowSettings(!showSettings)}
+              className="p-1.5 text-muted-foreground hover:text-white rounded-lg transition-colors flex items-center gap-1 text-[10px] bg-background/50 border border-transparent hover:border-border"
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+              {selectedProvider.name}
+            </button>
+            <button 
+              type="button"
               onClick={() => setShowSnippets(!showSnippets)}
               className="p-1.5 text-muted-foreground hover:text-white rounded-lg transition-colors flex items-center gap-1 text-[10px] bg-background/50 border border-transparent hover:border-border"
             >
@@ -254,6 +273,35 @@ export default function ChatBox() {
               Snippets ({snippets.length})
             </button>
             
+            {showSettings && (
+               <div className="absolute bottom-full left-0 mb-2 w-64 bg-[#0d1117] border border-border rounded-lg shadow-xl p-3 z-50 flex flex-col gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1 block">Provider</label>
+                    <select 
+                       className="w-full bg-background border border-border rounded p-1.5 text-xs text-white outline-none focus:border-primary"
+                       value={selectedProvider.id}
+                       onChange={(e) => {
+                          const p = PROVIDERS.find(x => x.id === e.target.value) || PROVIDERS[0];
+                          setSelectedProvider(p);
+                          setSelectedModel(p.models[0]);
+                       }}
+                    >
+                       {PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1 block">Model</label>
+                    <select 
+                       className="w-full bg-background border border-border rounded p-1.5 text-xs text-white outline-none focus:border-primary"
+                       value={selectedModel}
+                       onChange={(e) => setSelectedModel(e.target.value)}
+                    >
+                       {selectedProvider.models.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+               </div>
+            )}
+
             {showSnippets && (
                <div className="absolute bottom-full left-0 mb-2 w-48 max-h-48 overflow-y-auto bg-[#0d1117] border border-border rounded-lg shadow-xl p-1 z-50">
                   {snippets.length === 0 ? (

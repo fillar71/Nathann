@@ -1,54 +1,48 @@
-import { GoogleGenAI } from '@google/genai';
+export async function* chatWithNathanStream(
+  prompt: string, 
+  history: Array<{ role: 'user' | 'model', parts: { text: string }[] }> = [],
+  provider: string = 'gemini',
+  modelString?: string
+) {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, history, provider, modelString })
+  });
 
-const apiKey = process.env.GEMINI_API_KEY;
-
-let ai: GoogleGenAI;
-if (apiKey) {
-  ai = new GoogleGenAI({ apiKey });
-}
-
-export async function* chatWithNathanStream(prompt: string, history: Array<{ role: 'user' | 'model', parts: { text: string }[] }> = []) {
-  if (!ai) {
-    throw new Error('Gemini API Key is missing. Please set it in the AI Studio environment.');
+  if (!response.ok) {
+     const text = await response.text();
+     let err = text;
+     try { const j = JSON.parse(text); err = j.error || text; } catch(e){}
+     throw new Error(`Failed to chat: ${err}`);
   }
 
-  const systemInstruction = `You are "Nathan-coder", an autonomous AI developer agent. 
-You act as a Vibe Architect and Senior Full-stack Engineer.
-Your workflow:
-1. Understand the user's prompt. Take project context into account if provided.
-2. Provide a summary of recommendations & tech stack (e.g. Next.js, Tailwind, Supabase).
-3. Breakdown the task into tiny atomic steps.
-4. Execute steps. (You must narrate this process. Format your response to show your internal thought process and actions, e.g., "### Step 1: Initialize Database\n... Executing...\n... Testing... Success.").
-5. When writing or updating code files, you MUST use the following markdown code block format exactly:
-\`\`\`language path="dir/filename.ext"
-// code goes here
-\`\`\`
-For example:
-\`\`\`tsx path="src/App.tsx"
-export default function App() {}
-\`\`\`
-6. If there are errors (simulate one occasionally), narrate fixing them autonomously.
-7. Give a short summary of what was done, and add any extra features you thought were necessary.
-Keep your tone professional, concise, and futuristic. Use markdown. Use blockquotes for terminal outputs or file changes.`;
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('Response body missing reader');
 
-  try {
-    const responseStream = await ai.models.generateContentStream({
-      model: 'gemini-2.5-flash',
-      contents: [
-        ...history,
-        { role: 'user', parts: [{ text: prompt }] }
-      ],
-      config: {
-        systemInstruction: { parts: [{ text: systemInstruction }] },
-        temperature: 0.7,
-      }
-    });
+  const decoder = new TextDecoder('utf-8');
+  let done = false;
 
-    for await (const chunk of responseStream) {
-       yield chunk.text;
-    }
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    throw error;
+  while (!done) {
+     const { value, done: doneReading } = await reader.read();
+     done = doneReading;
+     if (value) {
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\\n');
+        for (const line of lines) {
+           if (line.startsWith('data: ')) {
+               const dataStr = line.replace(/^data: /, '').trim();
+               if (dataStr === '[DONE]') {
+                   return;
+               }
+               try {
+                   const j = JSON.parse(dataStr);
+                   if (j.error) throw new Error(j.error);
+                   if (j.text) yield j.text;
+               } catch(e) {}
+           }
+        }
+     }
   }
 }
+
