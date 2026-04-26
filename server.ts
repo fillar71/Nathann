@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import OpenAI from 'openai';
 import { GoogleGenAI } from '@google/genai';
+import { Mistral } from '@mistralai/mistralai';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -37,11 +38,11 @@ Keep your tone professional, concise, and futuristic. Use markdown. Use blockquo
 
       if (provider === 'gemini') {
         const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY missing' });
+        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY missing. Please configure it in your secrets.' });
         const ai = new GoogleGenAI({ apiKey });
         
         const responseStream = await ai.models.generateContentStream({
-          model: modelString || 'gemini-2.5-flash',
+          model: modelString || 'gemini-2.0-flash',
           contents: [
             ...history,
             { role: 'user', parts: [{ text: prompt }] }
@@ -62,6 +63,42 @@ Keep your tone professional, concise, and futuristic. Use markdown. Use blockquo
         res.write('data: [DONE]\n\n');
         return res.end();
 
+      } else if (provider === 'mistral') {
+        const apiKey = process.env.MISTRAL_API_KEY;
+        if (!apiKey) {
+           return res.status(500).json({ error: 'MISTRAL_API_KEY missing. Please add it to your secrets in AI Studio.' });
+        }
+
+        const client = new Mistral({ apiKey });
+        
+        const oaiHistory = history.map((msg: any) => ({
+           role: msg.role === 'model' ? 'assistant' : msg.role,
+           content: msg.parts ? msg.parts.map((p: any) => p.text).join('\n') : '',
+        }));
+
+        const result = await client.chat.stream({
+          model: modelString || 'mistral-large-latest',
+          messages: [
+            { role: 'system', content: systemInstruction },
+            ...oaiHistory,
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7,
+        });
+
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        for await (const chunk of result) {
+           const content = chunk.data.choices[0]?.delta?.content || '';
+           if (content) {
+              res.write(`data: ${JSON.stringify({ text: content })}\n\n`);
+           }
+        }
+        res.write('data: [DONE]\n\n');
+        return res.end();
+
       } else {
         // OpenAI-compatible providers
         let apiKey = '';
@@ -75,14 +112,11 @@ Keep your tone professional, concise, and futuristic. Use markdown. Use blockquo
           baseURL = 'https://api.groq.com/openai/v1';
         } else if (provider === 'deepseek') {
           apiKey = process.env.DEEPSEEK_API_KEY || '';
-          baseURL = 'https://api.deepseek.com/v1';
-        } else if (provider === 'mistral') {
-          apiKey = process.env.MISTRAL_API_KEY || '';
-          baseURL = 'https://api.mistral.ai/v1';
+          baseURL = 'https://api.deepseek.com';
         }
 
         if (!apiKey) {
-           return res.status(500).json({ error: `${provider.toUpperCase()}_API_KEY missing` });
+           return res.status(500).json({ error: `${provider.toUpperCase()}_API_KEY missing. Please configure it in your secrets.` });
         }
 
         const openai = new OpenAI({ apiKey, baseURL });

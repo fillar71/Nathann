@@ -10,7 +10,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const PROVIDERS = [
-  { id: 'gemini', name: 'Gemini', models: ['gemini-2.5-flash', 'gemini-1.5-pro'] },
+  { id: 'gemini', name: 'Gemini', models: ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'] },
   { id: 'openai', name: 'OpenAI (ChatGPT)', models: ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'] },
   { id: 'groq', name: 'Groq', models: ['llama3-70b-8192', 'mixtral-8x7b-32768'] },
   { id: 'deepseek', name: 'DeepSeek', models: ['deepseek-chat', 'deepseek-coder'] },
