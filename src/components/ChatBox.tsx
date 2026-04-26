@@ -25,9 +25,14 @@ export default function ChatBox() {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const scrollViewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]') || scrollRef.current.querySelector('[data-slot="scroll-area-viewport"]');
+      if (scrollViewport) {
+        scrollViewport.scrollTop = scrollViewport.scrollHeight;
+      } else {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
     }
-  }, [messages]);
+  }, [messages, isTyping]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,9 +164,9 @@ export default function ChatBox() {
                 }`}
               >
                 {msg.role === 'user' ? (
-                  <div className="whitespace-pre-wrap">{msg.content}</div>
+                  <div className="whitespace-pre-wrap break-words">{msg.content}</div>
                 ) : (
-                  <div className="markdown-body prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-[#0d1117] prose-pre:p-3 prose-pre:border prose-pre:border-border/50 prose-pre:rounded-lg">
+                  <div className="markdown-body prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-transparent prose-pre:m-0 break-words min-w-0">
                     {msg.content === '' && msg.isStreaming ? (
                        <div className="flex items-center gap-2 text-muted-foreground">
                           <Loader2 className="w-3 h-3 animate-spin" /> Thinking...
@@ -169,34 +174,45 @@ export default function ChatBox() {
                     ) : (
                        <ReactMarkdown
                          components={{
+                           pre({children, ...props}: any) {
+                             return (
+                               <pre className="relative group/code overflow-hidden bg-[#0d1117] border border-border/50 rounded-lg max-w-full my-4" {...props}>
+                                  {children}
+                               </pre>
+                             )
+                           },
                            code({node, inline, className, children, ...props}: any) {
                              const match = /language-(\w+)/.exec(className || '')
                              if (!inline && match) {
                                return (
-                                 <div className="relative group/code block">
-                                   <button
-                                     onClick={() => {
-                                       const name = window.prompt("Name this snippet:", "New snippet");
-                                       if (name) {
-                                         useAgentStore.getState().addSnippet({
-                                           id: crypto.randomUUID(),
-                                           name,
-                                           code: String(children).replace(/\n$/, '')
-                                         });
-                                       }
-                                     }}
-                                     className="absolute right-2 top-2 opacity-0 group-hover/code:opacity-100 bg-[#0d1117] border border-border p-1.5 rounded text-xs text-muted-foreground hover:text-white transition-opacity flex items-center gap-1 z-20"
-                                     title="Save Snippet"
-                                   >
-                                     <Save size={12} /> Save
-                                   </button>
-                                   <code className={className} {...props}>
-                                     {children}
-                                   </code>
-                                 </div>
+                                 <>
+                                   <div className="absolute right-2 top-2 z-20">
+                                     <button
+                                       onClick={() => {
+                                         const name = window.prompt("Name this snippet:", "New snippet");
+                                         if (name) {
+                                           useAgentStore.getState().addSnippet({
+                                             id: crypto.randomUUID(),
+                                             name,
+                                             code: String(children).replace(/\n$/, '')
+                                           });
+                                         }
+                                       }}
+                                       className="opacity-0 group-hover/code:opacity-100 bg-background border border-border p-1.5 rounded text-xs text-muted-foreground hover:text-white transition-opacity flex items-center gap-1 shadow-sm"
+                                       title="Save Snippet"
+                                     >
+                                       <Save size={12} /> Save
+                                     </button>
+                                   </div>
+                                   <div className="w-full overflow-x-auto p-4">
+                                     <code className={className} {...props}>
+                                       {children}
+                                     </code>
+                                   </div>
+                                 </>
                                )
                              }
-                             return <code className={className} {...props}>{children}</code>
+                             return <code className={`${className} bg-muted px-1.5 py-0.5 rounded break-words whitespace-pre-wrap`} {...props}>{children}</code>
                            }
                          }}
                        >
