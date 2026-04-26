@@ -16,6 +16,12 @@ export type FileNode = {
   isOpen?: boolean;
 };
 
+export type Snippet = {
+  id: string;
+  name: string;
+  code: string;
+};
+
 interface AgentState {
   messages: Message[];
   addMessage: (msg: Message) => void;
@@ -25,7 +31,12 @@ interface AgentState {
   selectedFile: FileNode | null;
   setSelectedFile: (file: FileNode | null) => void;
   setFiles: (files: FileNode[]) => void;
+
+  snippets: Snippet[];
+  addSnippet: (snippet: Snippet) => void;
+  removeSnippet: (id: string) => void;
 }
+
 
 const initialFiles: FileNode[] = [
   {
@@ -53,4 +64,8 @@ export const useAgentStore = create<AgentState>((set) => ({
   selectedFile: null,
   setSelectedFile: (file) => set({ selectedFile: file }),
   setFiles: (files) => set({ files }),
+
+  snippets: [],
+  addSnippet: (snippet) => set((state) => ({ snippets: [...state.snippets, snippet] })),
+  removeSnippet: (id) => set((state) => ({ snippets: state.snippets.filter(s => s.id !== id) })),
 }));

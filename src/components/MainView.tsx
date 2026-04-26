@@ -30,11 +30,11 @@ export default function MainView() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#0d1117]">
       <Tabs defaultValue="code" className="flex-1 flex flex-col w-full h-full">
-        <div className="h-10 bg-background border-b border-border flex items-center justify-between px-2 pr-4 shrink-0">
-          <div className="flex items-center gap-2 px-3 py-1 bg-[#0d1117] text-slate-300 text-sm border-t-2 border-t-primary border-x border-x-border rounded-t-sm h-full">
-            {selectedFile.name}
+        <div className="h-10 bg-background border-b border-border flex items-center justify-between px-2 pr-2 md:pr-4 shrink-0 overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-1 bg-[#0d1117] text-slate-300 text-sm border-t-2 border-t-primary border-x border-x-border rounded-t-sm h-full truncate max-w-[50%] md:max-w-none">
+            <span className="truncate">{selectedFile.name}</span>
           </div>
-          <TabsList className="h-7 bg-muted/50 border border-border">
+          <TabsList className="h-7 bg-muted/50 border border-border shrink-0">
             <TabsTrigger value="code" className="text-xs px-3 py-1 data-[state=active]:bg-[#0d1117]">Code</TabsTrigger>
             <TabsTrigger value="preview" className="text-xs px-3 py-1 data-[state=active]:bg-[#0d1117]">Preview</TabsTrigger>
           </TabsList>

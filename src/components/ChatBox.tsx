@@ -5,15 +5,21 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { ScrollArea } from './ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Send, Bot, User, Sparkles, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Loader2, Save, FileCode2, Trash } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 export default function ChatBox() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [showSnippets, setShowSnippets] = useState(false);
+  const [previewSnippet, setPreviewSnippet] = useState<{ id: string; name: string; code: string } | null>(null);
+  const [snippetToDelete, setSnippetToDelete] = useState<string | null>(null);
+  
   const messages = useAgentStore(state => state.messages);
   const addMessage = useAgentStore(state => state.addMessage);
   const updateMessage = useAgentStore(state => state.updateMessage);
+  const snippets = useAgentStore(state => state.snippets);
+  const removeSnippet = useAgentStore(state => state.removeSnippet);
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -35,11 +41,29 @@ export default function ChatBox() {
     const modelMsgId = crypto.randomUUID();
     addMessage({ id: modelMsgId, role: 'model', content: '', isStreaming: true });
 
-    // Format history for Gemini
-    const history = messages.map(m => ({
-      role: m.role,
-      parts: [{ text: m.content }]
-    }));
+    const rawHistory = messages
+      .filter((m) => m.id !== 'welcome' && m.content.trim() !== '')
+      .map(m => ({
+        role: m.role,
+        parts: [{ text: m.content }]
+      }));
+      
+    const history: any[] = [];
+    for (const msg of rawHistory) {
+      if (history.length === 0) {
+        if (msg.role === 'user') history.push(msg);
+      } else {
+        if (history[history.length - 1].role !== msg.role) {
+          history.push(msg);
+        } else {
+          history[history.length - 1].parts[0].text += '\n\n' + msg.parts[0].text;
+        }
+      }
+    }
+    
+    if (history.length > 0 && history[history.length - 1].role === 'user') {
+      history.push({ role: 'model', parts: [{ text: 'Understood.' }] });
+    }
 
     try {
       let accumulatedText = "";
@@ -142,7 +166,41 @@ export default function ChatBox() {
                           <Loader2 className="w-3 h-3 animate-spin" /> Thinking...
                        </div>
                     ) : (
-                       <ReactMarkdown>{msg.content}</ReactMarkdown>
+                       <ReactMarkdown
+                         components={{
+                           code({node, inline, className, children, ...props}: any) {
+                             const match = /language-(\w+)/.exec(className || '')
+                             if (!inline && match) {
+                               return (
+                                 <div className="relative group/code block">
+                                   <button
+                                     onClick={() => {
+                                       const name = window.prompt("Name this snippet:", "New snippet");
+                                       if (name) {
+                                         useAgentStore.getState().addSnippet({
+                                           id: crypto.randomUUID(),
+                                           name,
+                                           code: String(children).replace(/\n$/, '')
+                                         });
+                                       }
+                                     }}
+                                     className="absolute right-2 top-2 opacity-0 group-hover/code:opacity-100 bg-[#0d1117] border border-border p-1.5 rounded text-xs text-muted-foreground hover:text-white transition-opacity flex items-center gap-1 z-20"
+                                     title="Save Snippet"
+                                   >
+                                     <Save size={12} /> Save
+                                   </button>
+                                   <code className={className} {...props}>
+                                     {children}
+                                   </code>
+                                 </div>
+                               )
+                             }
+                             return <code className={className} {...props}>{children}</code>
+                           }
+                         }}
+                       >
+                         {msg.content}
+                       </ReactMarkdown>
                     )}
                     {msg.isStreaming && msg.content !== '' && (
                        <span className="inline-block w-1 h-3 ml-1 bg-primary animate-pulse align-middle" />
@@ -161,7 +219,7 @@ export default function ChatBox() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Add a new feature or change instructions..."
-            className="w-full bg-muted border border-border rounded-xl p-4 text-xs text-slate-300 h-24 resize-none focus:outline-none focus-visible:ring-1 focus-visible:ring-primary shadow-none placeholder:text-muted-foreground"
+            className="w-full bg-muted border border-border rounded-xl p-4 pb-12 text-xs text-slate-300 h-24 resize-none focus:outline-none focus-visible:ring-1 focus-visible:ring-primary shadow-none placeholder:text-muted-foreground"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -169,6 +227,50 @@ export default function ChatBox() {
               }
             }}
           />
+          <div className="absolute bottom-3 left-3 flex items-center gap-2">
+            <button 
+              type="button"
+              onClick={() => setShowSnippets(!showSnippets)}
+              className="p-1.5 text-muted-foreground hover:text-white rounded-lg transition-colors flex items-center gap-1 text-[10px] bg-background/50 border border-transparent hover:border-border"
+            >
+              <FileCode2 className="w-3.5 h-3.5" />
+              Snippets ({snippets.length})
+            </button>
+            
+            {showSnippets && (
+               <div className="absolute bottom-full left-0 mb-2 w-48 max-h-48 overflow-y-auto bg-[#0d1117] border border-border rounded-lg shadow-xl p-1 z-50">
+                  {snippets.length === 0 ? (
+                     <div className="p-2 text-xs text-muted-foreground text-center">No snippets saved. Click "Save" on codeblocks above.</div>
+                  ) : (
+                     snippets.map(s => (
+                        <div key={s.id} className="flex items-center justify-between group p-1 hover:bg-muted/50 rounded">
+                           <button 
+                              type="button"
+                              className="flex-1 text-left text-xs text-slate-300 px-2 py-1 truncate"
+                              onClick={() => {
+                                 setPreviewSnippet(s);
+                                 setShowSnippets(false);
+                              }}
+                           >
+                             {s.name}
+                           </button>
+                           <button 
+                              type="button" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSnippetToDelete(s.id);
+                                setShowSnippets(false);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:bg-red-400/10 rounded transition-opacity"
+                           >
+                              <Trash size={12} />
+                           </button>
+                        </div>
+                     ))
+                  )}
+               </div>
+            )}
+          </div>
           <div className="absolute bottom-3 right-3 flex items-center gap-2">
             <span className="text-[9px] text-muted-foreground">Press ⌘ + Enter to send</span>
             <button 
@@ -181,6 +283,68 @@ export default function ChatBox() {
           </div>
         </form>
       </div>
+
+      {/* Preview Snippet Modal */}
+      {previewSnippet && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-[#0d1117] border border-border rounded-xl w-full max-w-sm flex flex-col shadow-2xl">
+            <div className="px-4 py-3 border-b border-border text-sm font-semibold text-white flex justify-between items-center">
+              <span>{previewSnippet.name}</span>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-60 bg-[#0a0d14] text-xs font-mono text-slate-300">
+              <pre className="whitespace-pre-wrap">{previewSnippet.code}</pre>
+            </div>
+            <div className="px-4 py-3 border-t border-border flex justify-end gap-2">
+              <button 
+                onClick={() => setPreviewSnippet(null)}
+                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  setInput(prev => prev + (prev.endsWith('\n') || prev === '' ? '' : '\n') + previewSnippet.code + '\n');
+                  setPreviewSnippet(null);
+                }}
+                className="px-3 py-1.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground rounded transition-colors"
+              >
+                Insert
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Snippet Modal */}
+      {snippetToDelete && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-[#0d1117] border border-border rounded-xl w-full max-w-xs flex flex-col shadow-2xl">
+            <div className="px-4 py-3 border-b border-border text-sm font-semibold text-white">
+              Delete Snippet?
+            </div>
+            <div className="p-4 text-xs text-slate-300">
+              Are you sure you want to delete this snippet? This action cannot be undone.
+            </div>
+            <div className="px-4 py-3 border-t border-border flex justify-end gap-2">
+              <button 
+                onClick={() => setSnippetToDelete(null)}
+                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  removeSnippet(snippetToDelete);
+                  setSnippetToDelete(null);
+                }}
+                className="px-3 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

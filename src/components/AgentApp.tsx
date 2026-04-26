@@ -1,54 +1,199 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import MainView from './MainView';
 import ChatBox from './ChatBox';
+import { Files, Code2, MessageSquare, Terminal as TerminalIcon, X, ChevronUp, ChevronDown } from 'lucide-react';
+
+// Mock Terminal component
+const Terminal = ({ onClose }: { onClose?: () => void }) => {
+  const [output, setOutput] = useState<string[]>([
+    'Welcome to the Nathan Workspace Terminal.',
+    'Type "help" for a list of available commands.',
+    'v8.0.0 > system ready'
+  ]);
+  const [input, setInput] = useState('');
+  const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [output]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const trimmedOutput = input.trim();
+      let response = '';
+      
+      if (trimmedOutput === 'help') {
+        response = 'Available commands: help, clear, echo, ping, date';
+      } else if (trimmedOutput === 'clear') {
+        setOutput([]);
+        setInput('');
+        return;
+      } else if (trimmedOutput.startsWith('echo ')) {
+        response = trimmedOutput.substring(5);
+      } else if (trimmedOutput === 'ping') {
+        response = 'pong';
+      } else if (trimmedOutput === 'date') {
+        response = new Date().toString();
+      } else if (trimmedOutput === '') {
+         // do nothing
+      } else {
+        response = `Command not found: ${trimmedOutput}`;
+      }
+
+      if(trimmedOutput !== '') {
+          setOutput(prev => [...prev, `nathan-workspace % ${trimmedOutput}`, response].filter(Boolean));
+      } else {
+          setOutput(prev => [...prev, `nathan-workspace %`]);
+      }
+      
+      setInput('');
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-black text-[#00ff00] font-mono text-xs w-full">
+      <div className="flex justify-between items-center bg-[#1a1a1a] px-4 py-1 border-b border-[#333]">
+         <div className="flex gap-2 items-center">
+            <TerminalIcon size={12} className="text-gray-400" />
+            <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">Terminal</span>
+         </div>
+         {onClose && (
+            <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+               <X size={14} />
+            </button>
+         )}
+      </div>
+      <div className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
+        {output.map((line, i) => (
+          <div key={i} className="mb-1 opacity-90 break-all">{line}</div>
+        ))}
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-blue-400">nathan-workspace % </span>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="flex-1 bg-transparent border-none outline-none text-[#00ff00] caret-white w-full min-w-0"
+            autoFocus
+          />
+        </div>
+        <div ref={endRef} />
+      </div>
+    </div>
+  );
+};
 
 export default function AgentApp() {
-  return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden font-sans select-none">
-      <Sidebar />
-      <main className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="h-16 border-b border-border flex items-center justify-between px-8 bg-background shrink-0">
-          <div className="flex items-center gap-4">
-            <h2 className="font-medium text-sm">Project: <span className="text-primary">nathan-workspace</span></h2>
-            <span className="px-2 py-0.5 bg-green-500/10 text-green-400 text-[10px] font-bold rounded border border-green-500/20 uppercase">Synced to GitHub</span>
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-              <span className="text-xs text-muted-foreground">Agent: <span className="text-foreground font-mono">Standby</span></span>
-            </div>
-            <button className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded transition-colors">Deploy to Prod</button>
-          </div>
-        </header>
+  const [mobileTab, setMobileTab] = useState<'files' | 'editor' | 'chat'>('chat');
+  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
 
-        {/* Workspace Area */}
-        <div className="flex-1 flex overflow-hidden bg-background">
-          <div className="flex-1 flex flex-col min-w-0 border-r border-border bg-[#0d1117]">
-            <MainView />
-          </div>
-          <div className="w-[420px] flex-shrink-0 flex flex-col bg-card z-10">
-            <ChatBox />
-          </div>
+  return (
+    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden font-sans select-none">
+      
+      {/* Main Content Area (Desktop: Row, Mobile: Column) */}
+      <div className="flex flex-1 overflow-hidden">
+        
+        {/* Sidebar - Desktop: Fixed, Mobile: Conditional */}
+        <div className={`${mobileTab === 'files' ? 'flex w-full' : 'hidden'} md:flex md:w-64 shrink-0`}>
+          <Sidebar />
         </div>
 
-        {/* Footer Info Bar */}
-        <footer className="h-10 border-t border-border bg-background px-6 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <svg className="w-3 h-3 text-muted-foreground" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg> 
-              github.com/nathan-coder/workspace
-            </span>
-            <span className="flex items-center gap-1"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> Tests: All Passed</span>
+        <main className={`${mobileTab === 'files' ? 'hidden md:flex' : 'flex'} flex-1 flex-col min-w-0`}>
+          {/* Header */}
+          <header className="h-14 md:h-16 border-b border-border flex items-center justify-between px-4 md:px-8 bg-background shrink-0">
+            <div className="flex items-center gap-2 md:gap-4">
+              <h2 className="font-medium text-xs md:text-sm truncate">Project: <span className="text-primary">nathan-workspace</span></h2>
+              <span className="hidden sm:inline-block px-2 py-0.5 bg-green-500/10 text-green-400 text-[10px] font-bold rounded border border-green-500/20 uppercase">Synced</span>
+            </div>
+            <div className="flex items-center gap-4 md:gap-6">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                <span className="text-[10px] md:text-xs text-muted-foreground hidden sm:inline">Agent: <span className="text-foreground font-mono">Standby</span></span>
+              </div>
+              <button className="px-3 py-1.5 md:px-4 md:py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded transition-colors whitespace-nowrap">Deploy</button>
+            </div>
+          </header>
+
+          {/* Workspace Area */}
+          <div className="flex-1 flex flex-col overflow-hidden bg-background">
+             <div className="flex-1 flex overflow-hidden">
+                <div className={`${mobileTab === 'editor' ? 'flex' : 'hidden'} md:flex flex-1 flex-col min-w-0 border-r border-border bg-[#0d1117]`}>
+                  <MainView />
+                </div>
+                <div className={`${mobileTab === 'chat' ? 'flex' : 'hidden'} w-full md:flex md:w-[420px] flex-shrink-0 flex-col bg-card z-10`}>
+                  <ChatBox />
+                </div>
+             </div>
+             
+             {/* Collapsible Terminal Area */}
+             <div 
+               className={`flex-shrink-0 border-t border-border transition-all duration-300 ease-in-out flex flex-col
+                  ${isTerminalOpen ? 'h-[250px] md:h-[300px]' : 'h-0 overflow-hidden'}
+               `}
+             >
+                <Terminal onClose={() => setIsTerminalOpen(false)} />
+             </div>
           </div>
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-            <span>Runtime: V8 Active</span>
-            <span className="w-px h-3 bg-border"></span>
-            <span className="text-primary">Mode: Autonomous</span>
-          </div>
-        </footer>
-      </main>
+
+          {/* Footer Info Bar */}
+          <footer className="h-8 md:h-10 border-t border-border bg-background px-2 md:px-6 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+               <button 
+                  onClick={() => setIsTerminalOpen(!isTerminalOpen)}
+                  className={`flex items-center gap-1 hover:text-white transition-colors px-2 py-1 rounded ${isTerminalOpen ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
+               >
+                  <TerminalIcon className="w-3 h-3" />
+                  Terminal
+                  {isTerminalOpen ? <ChevronDown className="w-3 h-3 ml-1" /> : <ChevronUp className="w-3 h-3 ml-1" />}
+               </button>
+              <span className="hidden md:flex items-center gap-1 ml-2">
+                github.com/nathan-coder/workspace
+              </span>
+              <span className="hidden md:flex items-center gap-1">Tests: All Passed</span>
+            </div>
+            <div className="flex items-center gap-2 md:gap-3 text-[10px] text-muted-foreground hidden md:flex">
+              <span>Runtime: V8 Active</span>
+              <span className="w-px h-3 bg-border"></span>
+              <span className="text-primary">Mode: Autonomous</span>
+            </div>
+          </footer>
+        </main>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden flex items-center justify-around h-14 bg-[#0d1117] border-t border-border shrink-0 z-50">
+        <button 
+          onClick={() => { setMobileTab('files'); setIsTerminalOpen(false); }}
+          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 ${mobileTab === 'files' && !isTerminalOpen ? 'text-primary' : 'text-muted-foreground'}`}
+        >
+          <Files className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Files</span>
+        </button>
+        <button 
+          onClick={() => { setMobileTab('editor'); setIsTerminalOpen(false); }}
+          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 ${mobileTab === 'editor' && !isTerminalOpen ? 'text-primary' : 'text-muted-foreground'}`}
+        >
+          <Code2 className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Editor</span>
+        </button>
+        <button 
+          onClick={() => { setMobileTab('chat'); setIsTerminalOpen(false); }}
+          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 ${mobileTab === 'chat' && !isTerminalOpen ? 'text-primary' : 'text-muted-foreground'}`}
+        >
+          <MessageSquare className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Chat</span>
+        </button>
+        <button 
+          onClick={() => { setIsTerminalOpen(true); }}
+          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 ${isTerminalOpen ? 'text-primary' : 'text-muted-foreground'}`}
+        >
+          <TerminalIcon className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Run</span>
+        </button>
+      </div>
+
     </div>
   );
 }
