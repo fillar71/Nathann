@@ -53,7 +53,23 @@ export const useAgentStore = create<AgentState>((set) => ({
   messages: [{
     id: 'welcome',
     role: 'model',
-    content: 'Hello! I am Nathan-coder. What would you like to build today?'
+    content: `Hello! I am **Nathan-coder**, your autonomous AI developer agent. I can help you build and modify your workspace with precision.
+
+### What can I do?
+| Feature | Description | Status |
+| :--- | :--- | :--- |
+| **Atomic Development** | I breakdown complex tasks into small, verifiable steps. | ✅ Ready |
+| **File Management** | I can create, update, and organize files in your workspace. | ✅ Ready |
+| **Vibe Architect** | I build esthetic, responsive, and modern web applications. | ✅ Ready |
+
+### Quick Start
+*   **Task Lists:** Just tell me what you want to achieve!
+    *   [ ] Define your project vision.
+    *   [ ] Request a new feature or change.
+    *   [ ] Watch me build it step-by-step.
+*   **Code Blocks:** I use standard markdown with file paths.
+
+How can I help you today?`
   }],
   addMessage: (msg) => set((state) => ({ messages: [...state.messages, msg] })),
   updateMessage: (id, content, isStreaming) => set((state) => ({

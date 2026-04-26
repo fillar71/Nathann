@@ -12,11 +12,10 @@ export default function Sidebar() {
     return nodes.map(node => (
       <div key={node.id}>
         <div 
-          className={`flex items-center gap-1.5 py-1.5 px-2 hover:bg-accent/50 cursor-pointer rounded-md transition-colors ${selectedFile?.id === node.id ? 'bg-accent text-accent-foreground font-medium' : 'text-muted-foreground'}`}
-          style={{ paddingLeft: `${padding}px` }}
+          className={`flex items-center gap-2 py-2.5 md:py-1.5 px-3 md:px-2 hover:bg-accent/50 cursor-pointer rounded-md transition-colors ${selectedFile?.id === node.id ? 'bg-accent text-accent-foreground font-medium' : 'text-muted-foreground'}`}
+          style={{ paddingLeft: `${node.type === 'folder' ? padding : padding + 18}px` }}
           onClick={() => {
             if (node.type === 'file') setSelectedFile(node);
-            // Folder toggle logic can go here (simulate for now)
           }}
         >
           {node.type === 'folder' ? (
@@ -25,10 +24,7 @@ export default function Sidebar() {
               <Folder className="w-4 h-4 text-blue-400" />
             </>
           ) : (
-            <>
-              <span className="w-3.5"></span>
-              <File className="w-4 h-4 text-slate-400" />
-            </>
+            <File className="w-4 h-4 text-slate-400" />
           )}
           <span className="text-sm truncate select-none">{node.name}</span>
         </div>

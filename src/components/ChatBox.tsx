@@ -5,8 +5,9 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { ScrollArea } from './ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Send, Bot, User, Sparkles, Loader2, Save, FileCode2, Trash, Settings2 } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Loader2, Save, FileCode2, Trash, Settings2, X, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const PROVIDERS = [
   { id: 'gemini', name: 'Gemini', models: ['gemini-2.5-flash', 'gemini-1.5-pro'] },
@@ -15,6 +16,60 @@ const PROVIDERS = [
   { id: 'deepseek', name: 'DeepSeek', models: ['deepseek-chat', 'deepseek-coder'] },
   { id: 'mistral', name: 'Mistral', models: ['mistral-large-latest', 'mistral-small-latest'] },
 ];
+
+const CodeBlock = ({ children, className, inline }: any) => {
+  const [copied, setCopied] = useState(false);
+  const match = /language-(\w+)/.exec(className || '');
+  const code = String(children).replace(/\n$/, '');
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSave = () => {
+    const name = window.prompt("Name this snippet:", "New snippet");
+    if (name) {
+      useAgentStore.getState().addSnippet({
+        id: crypto.randomUUID(),
+        name,
+        code
+      });
+    }
+  };
+
+  if (!inline && match) {
+    return (
+      <div className="relative group/code overflow-hidden bg-[#0d1117] border border-border/50 rounded-lg max-w-full my-4">
+        <div className="absolute right-2 top-2 z-20 flex gap-2">
+          <button
+            onClick={handleCopy}
+            className="opacity-0 group-hover/code:opacity-100 bg-background border border-border p-1.5 rounded text-xs text-muted-foreground hover:text-white transition-opacity flex items-center gap-1 shadow-sm"
+            title="Copy Code"
+          >
+            {copied ? <Check size={12} /> : <Copy size={12} />}
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+          <button
+            onClick={handleSave}
+            className="opacity-0 group-hover/code:opacity-100 bg-background border border-border p-1.5 rounded text-xs text-muted-foreground hover:text-white transition-opacity flex items-center gap-1 shadow-sm"
+            title="Save Snippet"
+          >
+            <Save size={12} /> Save
+          </button>
+        </div>
+        <div className="w-full overflow-x-auto p-4">
+          <code className={className}>
+            {children}
+          </code>
+        </div>
+      </div>
+    );
+  }
+
+  return <code className={`${className} bg-muted px-1.5 py-0.5 rounded break-words whitespace-pre-wrap`}>{children}</code>;
+};
 
 export default function ChatBox() {
   const [input, setInput] = useState('');
@@ -159,11 +214,12 @@ export default function ChatBox() {
 
   return (
     <div className="flex flex-col h-full bg-[#0F1219] relative">
-      <div className="px-6 py-4 border-b border-border bg-background shrink-0 z-10">
+      <div className="px-4 md:px-6 py-4 border-b border-border bg-background shrink-0 z-10 flex items-center justify-between">
         <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Instruction Input</span>
+        <div className="text-[11px] font-medium text-primary md:hidden">Autonomous AI</div>
       </div>
       
-      <ScrollArea className="flex-1 p-6" ref={scrollRef}>
+      <ScrollArea className="flex-1 min-h-0 p-4 md:p-6" ref={scrollRef}>
         <div className="space-y-4 pb-4">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -184,46 +240,24 @@ export default function ChatBox() {
                        </div>
                     ) : (
                        <ReactMarkdown
+                         remarkPlugins={[remarkGfm]}
                          components={{
-                           pre({children, ...props}: any) {
-                             return (
-                               <pre className="relative group/code overflow-hidden bg-[#0d1117] border border-border/50 rounded-lg max-w-full my-4" {...props}>
-                                  {children}
-                               </pre>
-                             )
-                           },
-                           code({node, inline, className, children, ...props}: any) {
-                             const match = /language-(\w+)/.exec(className || '')
-                             if (!inline && match) {
+                           li({node, children, checked, ...props}: any) {
+                             if (checked !== undefined && checked !== null) {
                                return (
-                                 <>
-                                   <div className="absolute right-2 top-2 z-20">
-                                     <button
-                                       onClick={() => {
-                                         const name = window.prompt("Name this snippet:", "New snippet");
-                                         if (name) {
-                                           useAgentStore.getState().addSnippet({
-                                             id: crypto.randomUUID(),
-                                             name,
-                                             code: String(children).replace(/\n$/, '')
-                                           });
-                                         }
-                                       }}
-                                       className="opacity-0 group-hover/code:opacity-100 bg-background border border-border p-1.5 rounded text-xs text-muted-foreground hover:text-white transition-opacity flex items-center gap-1 shadow-sm"
-                                       title="Save Snippet"
-                                     >
-                                       <Save size={12} /> Save
-                                     </button>
-                                   </div>
-                                   <div className="w-full overflow-x-auto p-4">
-                                     <code className={className} {...props}>
-                                       {children}
-                                     </code>
-                                   </div>
-                                 </>
+                                 <li className="task-list-item flex items-center" {...props}>
+                                   <input type="checkbox" checked={checked} readOnly />
+                                   <span className="flex-1">{children}</span>
+                                 </li>
                                )
                              }
-                             return <code className={`${className} bg-muted px-1.5 py-0.5 rounded break-words whitespace-pre-wrap`} {...props}>{children}</code>
+                             return <li {...props}>{children}</li>
+                           },
+                           pre({children, ...props}: any) {
+                             return <>{children}</>
+                           },
+                           code({node, inline, className, children, ...props}: any) {
+                             return <CodeBlock inline={inline} className={className} children={children} />
                            }
                          }}
                        >
@@ -241,7 +275,7 @@ export default function ChatBox() {
         </div>
       </ScrollArea>
 
-      <div className="p-6 shrink-0">
+      <div className="p-4 md:p-6 shrink-0">
         <form onSubmit={handleSubmit} className="relative">
           <Textarea 
             value={input}
@@ -274,11 +308,15 @@ export default function ChatBox() {
             </button>
             
             {showSettings && (
-               <div className="absolute bottom-full left-0 mb-2 w-64 bg-[#0d1117] border border-border rounded-lg shadow-xl p-3 z-50 flex flex-col gap-3">
+               <div className="absolute bottom-full left-0 md:left-0 mb-2 w-[calc(100vw-3rem)] md:w-64 max-w-64 bg-[#0d1117] border border-border rounded-lg shadow-xl p-4 z-50 flex flex-col gap-4">
+                  <div className="flex justify-between items-center md:hidden">
+                    <span className="text-xs font-bold text-white">LLM Settings</span>
+                    <button onClick={() => setShowSettings(false)} className="text-muted-foreground"><X size={16} /></button>
+                  </div>
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1 block">Provider</label>
                     <select 
-                       className="w-full bg-background border border-border rounded p-1.5 text-xs text-white outline-none focus:border-primary"
+                       className="w-full bg-background border border-border rounded-lg p-2 text-xs text-white outline-none focus:border-primary appearance-none"
                        value={selectedProvider.id}
                        onChange={(e) => {
                           const p = PROVIDERS.find(x => x.id === e.target.value) || PROVIDERS[0];
@@ -292,7 +330,7 @@ export default function ChatBox() {
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1 block">Model</label>
                     <select 
-                       className="w-full bg-background border border-border rounded p-1.5 text-xs text-white outline-none focus:border-primary"
+                       className="w-full bg-background border border-border rounded-lg p-2 text-xs text-white outline-none focus:border-primary appearance-none"
                        value={selectedModel}
                        onChange={(e) => setSelectedModel(e.target.value)}
                     >
@@ -303,9 +341,13 @@ export default function ChatBox() {
             )}
 
             {showSnippets && (
-               <div className="absolute bottom-full left-0 mb-2 w-48 max-h-48 overflow-y-auto bg-[#0d1117] border border-border rounded-lg shadow-xl p-1 z-50">
+               <div className="absolute bottom-full left-0 md:left-auto md:right-0 mb-2 w-[calc(100vw-3rem)] md:w-56 max-h-64 overflow-y-auto bg-[#0d1117] border border-border rounded-lg shadow-xl p-2 z-50">
+                  <div className="flex justify-between items-center p-2 border-b border-border mb-1 md:hidden">
+                    <span className="text-xs font-bold text-white">Saved Snippets</span>
+                    <button onClick={() => setShowSnippets(false)} className="text-muted-foreground"><X size={16} /></button>
+                  </div>
                   {snippets.length === 0 ? (
-                     <div className="p-2 text-xs text-muted-foreground text-center">No snippets saved. Click "Save" on codeblocks above.</div>
+                     <div className="p-4 text-xs text-muted-foreground text-center italic">No snippets saved yet. Click "Save" on code blocks in the chat.</div>
                   ) : (
                      snippets.map(s => (
                         <div key={s.id} className="flex items-center justify-between group p-1 hover:bg-muted/50 rounded">
@@ -337,11 +379,11 @@ export default function ChatBox() {
             )}
           </div>
           <div className="absolute bottom-3 right-3 flex items-center gap-2">
-            <span className="text-[9px] text-muted-foreground">Press ⌘ + Enter to send</span>
+            <span className="text-[9px] text-muted-foreground hidden sm:inline">Press ⌘ + Enter to send</span>
             <button 
               type="submit"
               disabled={!input.trim() || isTyping}
-              className="p-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center shrink-0 w-7 h-7"
+              className="p-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center shrink-0 w-8 h-8"
             >
               {isTyping ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             </button>
@@ -351,18 +393,19 @@ export default function ChatBox() {
 
       {/* Preview Snippet Modal */}
       {previewSnippet && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-[#0d1117] border border-border rounded-xl w-full max-w-sm flex flex-col shadow-2xl">
-            <div className="px-4 py-3 border-b border-border text-sm font-semibold text-white flex justify-between items-center">
-              <span>{previewSnippet.name}</span>
+        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-[#0d1117] border border-border rounded-xl w-full max-w-sm md:max-w-md flex flex-col shadow-2xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border text-sm font-semibold text-white flex justify-between items-center bg-background/50">
+              <span className="truncate mr-2">{previewSnippet.name}</span>
+              <button onClick={() => setPreviewSnippet(null)} className="text-muted-foreground hover:text-white"><X size={16} /></button>
             </div>
-            <div className="p-4 overflow-y-auto max-h-60 bg-[#0a0d14] text-xs font-mono text-slate-300">
+            <div className="p-4 overflow-y-auto max-h-[50vh] md:max-h-[60vh] bg-[#0a0d14] text-xs font-mono text-slate-300 scrollbar-thin">
               <pre className="whitespace-pre-wrap">{previewSnippet.code}</pre>
             </div>
-            <div className="px-4 py-3 border-t border-border flex justify-end gap-2">
+            <div className="px-4 py-4 border-t border-border flex justify-end gap-3 bg-background/50">
               <button 
                 onClick={() => setPreviewSnippet(null)}
-                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
+                className="px-4 py-2 text-xs text-muted-foreground hover:text-white transition-colors font-medium border border-transparent hover:border-border rounded-lg"
               >
                 Cancel
               </button>
@@ -371,9 +414,9 @@ export default function ChatBox() {
                   setInput(prev => prev + (prev.endsWith('\n') || prev === '' ? '' : '\n') + previewSnippet.code + '\n');
                   setPreviewSnippet(null);
                 }}
-                className="px-3 py-1.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground rounded transition-colors"
+                className="px-4 py-2 text-xs bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors font-bold shadow-lg shadow-primary/20"
               >
-                Insert
+                Insert to Chat
               </button>
             </div>
           </div>

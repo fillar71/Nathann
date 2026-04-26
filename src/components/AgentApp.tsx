@@ -90,7 +90,7 @@ export default function AgentApp() {
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden font-sans select-none">
+    <div className="flex flex-col h-screen h-[100dvh] bg-background text-foreground overflow-hidden font-sans select-none">
       
       {/* Main Content Area (Desktop: Row, Mobile: Column) */}
       <div className="flex flex-1 overflow-hidden">
@@ -122,7 +122,7 @@ export default function AgentApp() {
                 <div className={`${mobileTab === 'editor' ? 'flex' : 'hidden'} md:flex flex-1 flex-col min-w-0 border-r border-border bg-[#0d1117]`}>
                   <MainView />
                 </div>
-                <div className={`${mobileTab === 'chat' ? 'flex' : 'hidden'} w-full md:flex md:w-[420px] flex-shrink-0 flex-col bg-card z-10`}>
+                <div className={`${mobileTab === 'chat' ? 'flex' : 'hidden'} w-full md:flex md:w-[420px] flex-shrink-0 flex-col min-h-0 bg-card z-10`}>
                   <ChatBox />
                 </div>
              </div>

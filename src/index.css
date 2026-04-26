@@ -301,4 +301,25 @@
   .markdown-body blockquote {
     @apply border-l-4 border-primary/50 pl-4 py-1 italic bg-muted/20 my-4 text-muted-foreground;
   }
+  .markdown-body table {
+    @apply w-full border-collapse mb-4 overflow-x-auto block md:table;
+  }
+  .markdown-body th {
+    @apply bg-muted/50 border border-border p-2 text-left font-bold text-xs;
+  }
+  .markdown-body td {
+    @apply border border-border p-2 text-xs;
+  }
+  .markdown-body tr:nth-child(even) {
+    @apply bg-muted/20;
+  }
+  .markdown-body hr {
+    @apply border-t border-border my-6;
+  }
+  .markdown-body input[type="checkbox"] {
+    @apply mr-2 accent-primary scale-110;
+  }
+  .markdown-body .task-list-item {
+    @apply list-none flex items-start mb-1;
+  }
 }
