@@ -10,11 +10,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const PROVIDERS = [
-  { id: 'gemini', name: 'Gemini', models: ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'] },
-  { id: 'openai', name: 'OpenAI (ChatGPT)', models: ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'] },
-  { id: 'groq', name: 'Groq', models: ['llama3-70b-8192', 'mixtral-8x7b-32768'] },
+  { id: 'gemini', name: 'Gemini', models: ['gemini-3-flash-preview', 'gemini-3.1-pro-preview', 'gemini-flash-latest'] },
+  { id: 'openai', name: 'OpenAI (ChatGPT)', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo'] },
+  { id: 'groq', name: 'Groq', models: ['llama-3.3-70b-versatile', 'mixtral-8x7b-32768'] },
   { id: 'deepseek', name: 'DeepSeek', models: ['deepseek-chat', 'deepseek-coder'] },
-  { id: 'mistral', name: 'Mistral', models: ['mistral-large-latest', 'mistral-small-latest'] },
+  { id: 'mistral', name: 'Mistral', models: ['pixtral-large-latest', 'mistral-large-latest', 'mistral-small-latest'] },
 ];
 
 const CodeBlock = ({ children, className, inline }: any) => {

@@ -42,7 +42,7 @@ Keep your tone professional, concise, and futuristic. Use markdown. Use blockquo
         const ai = new GoogleGenAI({ apiKey });
         
         const responseStream = await ai.models.generateContentStream({
-          model: modelString || 'gemini-2.0-flash',
+          model: modelString || 'gemini-3-flash-preview',
           contents: [
             ...history,
             { role: 'user', parts: [{ text: prompt }] }
@@ -58,7 +58,10 @@ Keep your tone professional, concise, and futuristic. Use markdown. Use blockquo
         res.setHeader('Connection', 'keep-alive');
 
         for await (const chunk of responseStream) {
-           res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
+           const text = chunk.text;
+           if (text) {
+             res.write(`data: ${JSON.stringify({ text })}\n\n`);
+           }
         }
         res.write('data: [DONE]\n\n');
         return res.end();
@@ -91,7 +94,8 @@ Keep your tone professional, concise, and futuristic. Use markdown. Use blockquo
         res.setHeader('Connection', 'keep-alive');
 
         for await (const chunk of result) {
-           const content = chunk.data.choices[0]?.delta?.content || '';
+           // Handle both Speakeasy-style (chunk.data) and standard OpenAI-style (chunk.choices)
+           const content = (chunk as any).data?.choices?.[0]?.delta?.content || (chunk as any).choices?.[0]?.delta?.content || '';
            if (content) {
               res.write(`data: ${JSON.stringify({ text: content })}\n\n`);
            }
