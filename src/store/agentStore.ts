@@ -31,6 +31,10 @@ interface AgentState {
   selectedFile: FileNode | null;
   setSelectedFile: (file: FileNode | null) => void;
   setFiles: (files: FileNode[]) => void;
+  addFile: (parentId: string | null, node: FileNode) => void;
+  renameFile: (id: string, newName: string) => void;
+  deleteFile: (id: string) => void;
+  toggleFolder: (id: string) => void;
 
   snippets: Snippet[];
   addSnippet: (snippet: Snippet) => void;
@@ -80,6 +84,62 @@ How can I help you today?`
   selectedFile: null,
   setSelectedFile: (file) => set({ selectedFile: file }),
   setFiles: (files) => set({ files }),
+
+  addFile: (parentId, node) => set((state) => {
+    const addNode = (nodes: FileNode[]): FileNode[] => {
+      if (!parentId) return [...nodes, node];
+      return nodes.map(n => {
+        if (n.id === parentId && n.type === 'folder') {
+          return { ...n, children: [...(n.children || []), node], isOpen: true };
+        }
+        if (n.children) {
+          return { ...n, children: addNode(n.children) };
+        }
+        return n;
+      });
+    };
+    return { files: addNode(state.files) };
+  }),
+
+  renameFile: (id, newName) => set((state) => {
+    const renameNode = (nodes: FileNode[]): FileNode[] => {
+      return nodes.map(n => {
+        if (n.id === id) return { ...n, name: newName };
+        if (n.children) return { ...n, children: renameNode(n.children) };
+        return n;
+      });
+    };
+    const updatedFiles = renameNode(state.files);
+    // Also update selected file if it's the one renamed
+    const updatedSelectedFile = state.selectedFile?.id === id 
+      ? { ...state.selectedFile, name: newName } 
+      : state.selectedFile;
+
+    return { files: updatedFiles, selectedFile: updatedSelectedFile };
+  }),
+
+  deleteFile: (id) => set((state) => {
+    const deleteNode = (nodes: FileNode[]): FileNode[] => {
+      return nodes.filter(n => n.id !== id).map(n => {
+        if (n.children) return { ...n, children: deleteNode(n.children) };
+        return n;
+      });
+    };
+    const updatedFiles = deleteNode(state.files);
+    const updatedSelectedFile = state.selectedFile?.id === id ? null : state.selectedFile;
+    return { files: updatedFiles, selectedFile: updatedSelectedFile };
+  }),
+
+  toggleFolder: (id) => set((state) => {
+    const toggleNode = (nodes: FileNode[]): FileNode[] => {
+      return nodes.map(n => {
+        if (n.id === id) return { ...n, isOpen: !n.isOpen };
+        if (n.children) return { ...n, children: toggleNode(n.children) };
+        return n;
+      });
+    };
+    return { files: toggleNode(state.files) };
+  }),
 
   snippets: [],
   addSnippet: (snippet) => set((state) => ({ snippets: [...state.snippets, snippet] })),
