@@ -86,7 +86,7 @@ const Terminal = ({ onClose }: { onClose?: () => void }) => {
 };
 
 export default function AgentApp() {
-  const [mobileTab, setMobileTab] = useState<'files' | 'editor' | 'chat'>('chat');
+  const [mobileTab, setMobileTab] = useState<'files' | 'editor' | 'chat' | 'run'>('chat');
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
 
   return (
@@ -118,7 +118,7 @@ export default function AgentApp() {
 
           {/* Workspace Area */}
           <div className="flex-1 flex flex-col overflow-hidden bg-background">
-             <div className="flex-1 flex overflow-hidden">
+             <div className={`flex-1 flex overflow-hidden ${mobileTab === 'run' ? 'hidden md:flex' : ''}`}>
                 <div className={`${mobileTab === 'editor' ? 'flex' : 'hidden'} md:flex flex-1 flex-col min-w-0 border-r border-border bg-[#0d1117]`}>
                   <MainView />
                 </div>
@@ -131,14 +131,18 @@ export default function AgentApp() {
              <div 
                className={`flex-shrink-0 border-t border-border transition-all duration-300 ease-in-out flex flex-col
                   ${isTerminalOpen ? 'h-[250px] md:h-[300px]' : 'h-0 overflow-hidden'}
+                  ${mobileTab === 'run' ? '!h-full !flex-1 border-t-0' : ''}
                `}
              >
-                <Terminal onClose={() => setIsTerminalOpen(false)} />
+                <Terminal onClose={() => {
+                   setIsTerminalOpen(false);
+                   if (mobileTab === 'run') setMobileTab('editor');
+                }} />
              </div>
           </div>
 
           {/* Footer Info Bar */}
-          <footer className="h-8 md:h-10 border-t border-border bg-background px-2 md:px-6 flex items-center justify-between shrink-0">
+          <footer className="h-8 md:h-10 border-t border-border bg-background px-4 md:px-6 items-center justify-between shrink-0 hidden md:flex">
             <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                <button 
                   onClick={() => setIsTerminalOpen(!isTerminalOpen)}
@@ -148,12 +152,12 @@ export default function AgentApp() {
                   Terminal
                   {isTerminalOpen ? <ChevronDown className="w-3 h-3 ml-1" /> : <ChevronUp className="w-3 h-3 ml-1" />}
                </button>
-              <span className="hidden md:flex items-center gap-1 ml-2">
+              <span className="flex items-center gap-1 ml-2">
                 github.com/nathan-coder/workspace
               </span>
-              <span className="hidden md:flex items-center gap-1">Tests: All Passed</span>
+              <span className="flex items-center gap-1">Tests: All Passed</span>
             </div>
-            <div className="flex items-center gap-2 md:gap-3 text-[10px] text-muted-foreground hidden md:flex">
+            <div className="flex items-center gap-2 md:gap-3 text-[10px] text-muted-foreground">
               <span>Runtime: V8 Active</span>
               <span className="w-px h-3 bg-border"></span>
               <span className="text-primary">Mode: Autonomous</span>
@@ -166,28 +170,28 @@ export default function AgentApp() {
       <div className="md:hidden flex items-center justify-around h-14 bg-[#0d1117] border-t border-border shrink-0 z-50">
         <button 
           onClick={() => { setMobileTab('files'); setIsTerminalOpen(false); }}
-          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 ${mobileTab === 'files' && !isTerminalOpen ? 'text-primary' : 'text-muted-foreground'}`}
+          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 ${mobileTab === 'files' ? 'text-primary' : 'text-muted-foreground'}`}
         >
           <Files className="w-5 h-5" />
           <span className="text-[10px] font-medium">Files</span>
         </button>
         <button 
           onClick={() => { setMobileTab('editor'); setIsTerminalOpen(false); }}
-          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 ${mobileTab === 'editor' && !isTerminalOpen ? 'text-primary' : 'text-muted-foreground'}`}
+          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 ${mobileTab === 'editor' ? 'text-primary' : 'text-muted-foreground'}`}
         >
           <Code2 className="w-5 h-5" />
           <span className="text-[10px] font-medium">Editor</span>
         </button>
         <button 
           onClick={() => { setMobileTab('chat'); setIsTerminalOpen(false); }}
-          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 ${mobileTab === 'chat' && !isTerminalOpen ? 'text-primary' : 'text-muted-foreground'}`}
+          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 ${mobileTab === 'chat' ? 'text-primary' : 'text-muted-foreground'}`}
         >
           <MessageSquare className="w-5 h-5" />
           <span className="text-[10px] font-medium">Chat</span>
         </button>
         <button 
-          onClick={() => { setIsTerminalOpen(true); }}
-          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 ${isTerminalOpen ? 'text-primary' : 'text-muted-foreground'}`}
+          onClick={() => { setMobileTab('run'); }}
+          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 ${mobileTab === 'run' ? 'text-primary' : 'text-muted-foreground'}`}
         >
           <TerminalIcon className="w-5 h-5" />
           <span className="text-[10px] font-medium">Run</span>
