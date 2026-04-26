@@ -41,33 +41,33 @@ export default function ChatBox() {
     const modelMsgId = crypto.randomUUID();
     addMessage({ id: modelMsgId, role: 'model', content: '', isStreaming: true });
 
-    const rawHistory = messages
-      .filter((m) => m.id !== 'welcome' && m.content.trim() !== '')
-      .map(m => ({
-        role: m.role,
-        parts: [{ text: m.content }]
-      }));
-      
-    const history: any[] = [];
-    for (const msg of rawHistory) {
-      if (history.length === 0) {
-        if (msg.role === 'user') history.push(msg);
-      } else {
-        if (history[history.length - 1].role !== msg.role) {
-          history.push(msg);
+    try {
+      const rawHistory = messages
+        .filter((m) => m.id !== 'welcome' && m.content.trim() !== '')
+        .map((m) => ({
+          role: m.role,
+          parts: [{ text: m.content }]
+        }));
+        
+      const history: any[] = [];
+      for (const msg of rawHistory) {
+        if (history.length === 0) {
+          if (msg.role === 'user') history.push(msg);
         } else {
-          history[history.length - 1].parts[0].text += '\n\n' + msg.parts[0].text;
+          if (history[history.length - 1].role !== msg.role) {
+            history.push(msg);
+          } else {
+            history[history.length - 1].parts[0].text += '\n\n' + msg.parts[0].text;
+          }
         }
       }
-    }
-    
-    if (history.length > 0 && history[history.length - 1].role === 'user') {
-      history.push({ role: 'model', parts: [{ text: 'Understood.' }] });
-    }
+      
+      if (history.length > 0 && history[history.length - 1].role === 'user') {
+        history.push({ role: 'model', parts: [{ text: 'Understood.' }] });
+      }
 
-    try {
       let accumulatedText = "";
-      const stream = chatWithNathanStream(input, history);
+      const stream = chatWithNathanStream(userMsg.content, history);
       
       for await (const chunk of stream) {
          accumulatedText += chunk;
@@ -80,7 +80,8 @@ export default function ChatBox() {
       parseStreamAndApplyFiles(accumulatedText);
 
     } catch (error: any) {
-      updateMessage(modelMsgId, `**Error**: ${error.message}`, false);
+      console.error(error);
+      updateMessage(modelMsgId, `**System Error**: ${error.message || String(error)}`, false);
     } finally {
       setIsTyping(false);
     }
