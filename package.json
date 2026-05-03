@@ -20,6 +20,7 @@
     "@google/genai": "^1.29.0",
     "@hono/node-server": "^2.0.0",
     "@mistralai/mistralai": "^2.2.1",
+    "@supabase/supabase-js": "^2.105.1",
     "@tailwindcss/vite": "^4.1.14",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@vitejs/plugin-react": "^5.0.4",
