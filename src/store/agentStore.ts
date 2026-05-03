@@ -39,6 +39,10 @@ interface AgentState {
   snippets: Snippet[];
   addSnippet: (snippet: Snippet) => void;
   removeSnippet: (id: string) => void;
+
+  terminalOutput: string[];
+  addTerminalOutput: (lines: string[]) => void;
+  clearTerminal: () => void;
 }
 
 
@@ -144,4 +148,12 @@ How can I help you today?`
   snippets: [],
   addSnippet: (snippet) => set((state) => ({ snippets: [...state.snippets, snippet] })),
   removeSnippet: (id) => set((state) => ({ snippets: state.snippets.filter(s => s.id !== id) })),
+
+  terminalOutput: [
+    'Welcome to the Nathan Workspace Terminal.',
+    'Type "help" for a list of available commands.',
+    'v8.0.0 > system ready'
+  ],
+  addTerminalOutput: (lines) => set((state) => ({ terminalOutput: [...state.terminalOutput, ...lines] })),
+  clearTerminal: () => set({ terminalOutput: [] }),
 }));

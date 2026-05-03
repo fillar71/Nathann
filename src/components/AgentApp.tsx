@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useAgentStore } from '../store/agentStore';
 import Sidebar from './Sidebar';
 import MainView from './MainView';
 import ChatBox from './ChatBox';
@@ -6,17 +7,15 @@ import { Files, Code2, MessageSquare, Terminal as TerminalIcon, X, ChevronUp, Ch
 
 // Mock Terminal component
 const Terminal = ({ onClose }: { onClose?: () => void }) => {
-  const [output, setOutput] = useState<string[]>([
-    'Welcome to the Nathan Workspace Terminal.',
-    'Type "help" for a list of available commands.',
-    'v8.0.0 > system ready'
-  ]);
+  const terminalOutput = useAgentStore(state => state.terminalOutput);
+  const addTerminalOutput = useAgentStore(state => state.addTerminalOutput);
+  const clearTerminal = useAgentStore(state => state.clearTerminal);
   const [input, setInput] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [output]);
+  }, [terminalOutput]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -26,7 +25,7 @@ const Terminal = ({ onClose }: { onClose?: () => void }) => {
       if (trimmedOutput === 'help') {
         response = 'Available commands: help, clear, echo, ping, date';
       } else if (trimmedOutput === 'clear') {
-        setOutput([]);
+        clearTerminal();
         setInput('');
         return;
       } else if (trimmedOutput.startsWith('echo ')) {
@@ -41,12 +40,15 @@ const Terminal = ({ onClose }: { onClose?: () => void }) => {
         response = `Command not found: ${trimmedOutput}`;
       }
 
+      const newLines = [];
       if(trimmedOutput !== '') {
-          setOutput(prev => [...prev, `nathan-workspace % ${trimmedOutput}`, response].filter(Boolean));
+          newLines.push(`nathan-workspace % ${trimmedOutput}`);
+          if (response) newLines.push(response);
       } else {
-          setOutput(prev => [...prev, `nathan-workspace %`]);
+          newLines.push(`nathan-workspace %`);
       }
       
+      addTerminalOutput(newLines);
       setInput('');
     }
   };
@@ -65,7 +67,7 @@ const Terminal = ({ onClose }: { onClose?: () => void }) => {
          )}
       </div>
       <div className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
-        {output.map((line, i) => (
+        {terminalOutput.map((line, i) => (
           <div key={i} className="mb-1 opacity-90 break-all">{line}</div>
         ))}
         <div className="flex items-center gap-2 mt-1">

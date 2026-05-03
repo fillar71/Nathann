@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { ScrollArea } from './ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Send, Bot, User, Sparkles, Loader2, Save, FileCode2, Trash, Settings2, X, Copy, Check } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Loader2, Save, FileCode2, Trash, Settings2, X, Copy, Check, TerminalIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -21,6 +21,7 @@ const CodeBlock = ({ children, className, inline }: any) => {
   const [copied, setCopied] = useState(false);
   const match = /language-(\w+)/.exec(className || '');
   const code = String(children).replace(/\n$/, '');
+  const isTerminalCommand = match && (match[1] === 'bash' || match[1] === 'sh' || match[1] === 'shell');
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
@@ -39,10 +40,29 @@ const CodeBlock = ({ children, className, inline }: any) => {
     }
   };
 
+  const handleRun = () => {
+    const lines = code.split('\n').filter(Boolean);
+    const commands = [];
+    for (const line of lines) {
+       commands.push(`nathan-workspace % ${line}`);
+       commands.push('✓ Executed (Simulation)');
+    }
+    useAgentStore.getState().addTerminalOutput(commands);
+  };
+
   if (!inline && match) {
     return (
       <div className="relative group/code overflow-hidden bg-[#0d1117] border border-border/50 rounded-lg max-w-full my-4">
         <div className="absolute right-2 top-2 z-20 flex gap-2">
+          {isTerminalCommand && (
+            <button
+              onClick={handleRun}
+              className="opacity-0 group-hover/code:opacity-100 bg-primary/20 text-primary border border-primary/30 p-1.5 rounded text-xs hover:bg-primary/40 hover:text-white transition-all flex items-center gap-1 shadow-sm font-bold"
+              title="Run in Terminal"
+            >
+              <TerminalIcon size={12} /> Run
+            </button>
+          )}
           <button
             onClick={handleCopy}
             className="opacity-0 group-hover/code:opacity-100 bg-background border border-border p-1.5 rounded text-xs text-muted-foreground hover:text-white transition-opacity flex items-center gap-1 shadow-sm"
@@ -51,13 +71,15 @@ const CodeBlock = ({ children, className, inline }: any) => {
             {copied ? <Check size={12} /> : <Copy size={12} />}
             {copied ? 'Copied!' : 'Copy'}
           </button>
-          <button
-            onClick={handleSave}
-            className="opacity-0 group-hover/code:opacity-100 bg-background border border-border p-1.5 rounded text-xs text-muted-foreground hover:text-white transition-opacity flex items-center gap-1 shadow-sm"
-            title="Save Snippet"
-          >
-            <Save size={12} /> Save
-          </button>
+          {!isTerminalCommand && (
+            <button
+              onClick={handleSave}
+              className="opacity-0 group-hover/code:opacity-100 bg-background border border-border p-1.5 rounded text-xs text-muted-foreground hover:text-white transition-opacity flex items-center gap-1 shadow-sm"
+              title="Save Snippet"
+            >
+              <Save size={12} /> Save
+            </button>
+          )}
         </div>
         <div className="w-full overflow-x-auto p-4">
           <code className={className}>
