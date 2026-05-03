@@ -19,6 +19,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   initialize: () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       set({ user: session?.user ?? null, loading: false });
+    }).catch(() => {
+      // Resolve cleanly even if the connection fails due to invalid keys
+      set({ user: null, loading: false });
     });
 
     supabase.auth.onAuthStateChange((_event, session) => {
