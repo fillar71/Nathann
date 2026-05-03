@@ -55,7 +55,7 @@ For terminal commands, use standard bash blocks. Provide the full code when modi
      done = doneReading;
      if (value) {
         const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\\n');
+        const lines = chunk.split('\n');
         for (const line of lines) {
            if (line.startsWith('data: ')) {
                const dataStr = line.replace(/^data: /, '').trim();
