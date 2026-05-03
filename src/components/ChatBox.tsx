@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { ScrollArea } from './ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Send, Bot, User, Sparkles, Loader2, Save, FileCode2, Trash, Settings2, X, Copy, Check, TerminalIcon } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Loader2, Save, FileCode2, Trash, Settings2, X, Copy, Check, TerminalIcon, FilePlus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -17,11 +17,18 @@ const PROVIDERS = [
   { id: 'mistral', name: 'Mistral', models: ['pixtral-large-latest', 'mistral-large-latest', 'mistral-small-latest'] },
 ];
 
-const CodeBlock = ({ children, className, inline }: any) => {
+const CodeBlock = ({ children, className, inline, node }: any) => {
   const [copied, setCopied] = useState(false);
   const match = /language-(\w+)/.exec(className || '');
   const code = String(children).replace(/\n$/, '');
   const isTerminalCommand = match && (match[1] === 'bash' || match[1] === 'sh' || match[1] === 'shell');
+
+  // Extract path from meta (if any)
+  // ReactMarkdown puts extra string after language into node.data.meta
+  const meta = node?.data?.meta || node?.meta || className || "";
+  let filePath = "";
+  const pathMatch = /(?:path|file)=["']?([^"'\n\s]+)["']?/.exec(meta);
+  if (pathMatch) filePath = pathMatch[1];
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
@@ -30,13 +37,23 @@ const CodeBlock = ({ children, className, inline }: any) => {
   };
 
   const handleSave = () => {
-    const name = window.prompt("Name this snippet:", "New snippet");
+    const name = window.prompt("Name this snippet:", filePath || "New snippet");
     if (name) {
       useAgentStore.getState().addSnippet({
         id: crypto.randomUUID(),
         name,
         code
       });
+    }
+  };
+
+  const handlePushToFile = () => {
+    const inputPath = window.prompt("Enter file path to save this code (e.g., src/App.tsx):", filePath || "src/NewFile.ts");
+    if (inputPath) {
+      const parts = inputPath.split('/').filter(Boolean);
+      if(parts.length > 0) {
+        useAgentStore.getState().pushFile(parts, code);
+      }
     }
   };
 
@@ -52,36 +69,41 @@ const CodeBlock = ({ children, className, inline }: any) => {
 
   if (!inline && match) {
     return (
-      <div className="relative group/code overflow-hidden bg-[#0d1117] border border-border/50 rounded-lg max-w-full my-4">
-        <div className="absolute right-2 top-2 z-20 flex gap-2">
-          {isTerminalCommand && (
+      <div className="relative group/code flex flex-col bg-[#0d1117] border border-border/50 rounded-lg max-w-full my-4 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-2 bg-background/50 border-b border-border/50 text-[11px] font-mono text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span className="uppercase text-primary/70">{match[1]}</span>
+            {filePath && <span className="text-slate-300">{filePath}</span>}
+          </div>
+          <div className="flex gap-2 opacity-0 group-hover/code:opacity-100 transition-opacity">
+            {isTerminalCommand && (
+              <button
+                onClick={handleRun}
+                className="text-primary hover:text-primary/80 transition-all flex items-center gap-1 font-bold bg-primary/10 px-2 py-0.5 rounded"
+                title="Run in Terminal"
+              >
+                <TerminalIcon size={12} /> Run
+              </button>
+            )}
+            {!isTerminalCommand && (
+              <button
+                onClick={handlePushToFile}
+                className="hover:text-white transition-opacity flex items-center gap-1"
+                title="Push to Editor"
+              >
+                <FilePlus size={12} /> File
+              </button>
+            )}
             <button
-              onClick={handleRun}
-              className="opacity-0 group-hover/code:opacity-100 bg-primary/20 text-primary border border-primary/30 p-1.5 rounded text-xs hover:bg-primary/40 hover:text-white transition-all flex items-center gap-1 shadow-sm font-bold"
-              title="Run in Terminal"
+              onClick={handleCopy}
+              className="hover:text-white transition-opacity flex items-center gap-1"
+              title="Copy Code"
             >
-              <TerminalIcon size={12} /> Run
+              {copied ? <Check size={12} /> : <Copy size={12} />}
             </button>
-          )}
-          <button
-            onClick={handleCopy}
-            className="opacity-0 group-hover/code:opacity-100 bg-background border border-border p-1.5 rounded text-xs text-muted-foreground hover:text-white transition-opacity flex items-center gap-1 shadow-sm"
-            title="Copy Code"
-          >
-            {copied ? <Check size={12} /> : <Copy size={12} />}
-            {copied ? 'Copied!' : 'Copy'}
-          </button>
-          {!isTerminalCommand && (
-            <button
-              onClick={handleSave}
-              className="opacity-0 group-hover/code:opacity-100 bg-background border border-border p-1.5 rounded text-xs text-muted-foreground hover:text-white transition-opacity flex items-center gap-1 shadow-sm"
-              title="Save Snippet"
-            >
-              <Save size={12} /> Save
-            </button>
-          )}
+          </div>
         </div>
-        <div className="w-full overflow-x-auto p-4">
+        <div className="w-full overflow-x-auto p-4 pt-3">
           <code className={className}>
             {children}
           </code>
@@ -185,7 +207,7 @@ export default function ChatBox() {
     const files = useAgentStore.getState().files;
     const setSelectedFile = useAgentStore.getState().setSelectedFile;
 
-    const regex = /```[a-z]*\s+path="([^"]+)"\n([\s\S]*?)(?:```|$)/g;
+    const regex = /```[\w-]*\s+(?:path|file)=["']?([^"'\n]+)["']?\n([\s\S]*?)(?:```|$)/gi;
     
     let match;
     const newFiles = JSON.parse(JSON.stringify(files));
@@ -279,7 +301,7 @@ export default function ChatBox() {
                              return <>{children}</>
                            },
                            code({node, inline, className, children, ...props}: any) {
-                             return <CodeBlock inline={inline} className={className} children={children} />
+                             return <CodeBlock inline={inline} className={className} children={children} node={node} />
                            }
                          }}
                        >

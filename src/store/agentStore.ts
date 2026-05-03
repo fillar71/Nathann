@@ -43,6 +43,7 @@ interface AgentState {
   terminalOutput: string[];
   addTerminalOutput: (lines: string[]) => void;
   clearTerminal: () => void;
+  pushFile: (pathParts: string[], content: string) => void;
 }
 
 
@@ -156,4 +157,33 @@ How can I help you today?`
   ],
   addTerminalOutput: (lines) => set((state) => ({ terminalOutput: [...state.terminalOutput, ...lines] })),
   clearTerminal: () => set({ terminalOutput: [] }),
+  pushFile: (pathParts, content) => set((state) => {
+    const newFiles = JSON.parse(JSON.stringify(state.files));
+    const updateFileHelper = (tree: FileNode[], parts: string[], fileContent: string): { tree: FileNode[], fileNode: FileNode } => {
+        const [currentPart, ...rest] = parts;
+        if (rest.length === 0) {
+            let existingFileIndex = tree.findIndex(f => f.name === currentPart && f.type === 'file');
+            if (existingFileIndex >= 0) {
+                tree[existingFileIndex].content = fileContent;
+                return { tree, fileNode: tree[existingFileIndex] };
+            } else {
+                const newNode: FileNode = { id: crypto.randomUUID(), name: currentPart, type: 'file', content: fileContent };
+                tree.push(newNode);
+                return { tree, fileNode: newNode };
+            }
+        } else {
+            let existingFolderIndex = tree.findIndex(f => f.name === currentPart && f.type === 'folder');
+            if (existingFolderIndex < 0) {
+                const newFolder: FileNode = { id: crypto.randomUUID(), name: currentPart, type: 'folder', children: [], isOpen: true };
+                tree.push(newFolder);
+                existingFolderIndex = tree.length - 1;
+            }
+            const res = updateFileHelper(tree[existingFolderIndex].children || [], rest, fileContent);
+            tree[existingFolderIndex].children = res.tree;
+            return { tree, fileNode: res.fileNode };
+        }
+    };
+    const res = updateFileHelper(newFiles, pathParts, content);
+    return { files: newFiles, selectedFile: res.fileNode };
+  }),
 }));
