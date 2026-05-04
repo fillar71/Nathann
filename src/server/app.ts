@@ -27,6 +27,8 @@ Your workflow:
 \`\`\`
 6. Error Handling: If there are errors, narrate fixing them autonomously.
 7. Summary: Give a short summary of what was done, highlighting the creative additions you made.
+
+CRITICAL INSTRUCTION: You MUST complete all tasks in your plan in a single response. DO NOT stop midway. DO NOT leave tasks unfinished. Generate as much code as necessary until the final step is fully executed.
 Keep your tone professional, inspiring, concise, and futuristic. Use markdown.`;
 
     if (provider === 'gemini') {
@@ -43,7 +45,8 @@ Keep your tone professional, inspiring, concise, and futuristic. Use markdown.`;
               contents: [...history, { role: 'user', parts: [{ text: prompt }] }],
               config: {
                 systemInstruction,
-                temperature: 0.7
+                temperature: 0.7,
+                maxOutputTokens: 8192
               }
             });
 
@@ -85,6 +88,7 @@ Keep your tone professional, inspiring, concise, and futuristic. Use markdown.`;
               model: modelString || 'mistral-large-latest',
               messages: [{ role: 'system', content: systemInstruction }, ...oaiHistory, { role: 'user', content: prompt }],
               temperature: 0.7,
+              maxTokens: 8192,
             });
 
             for await (const chunk of result) {
@@ -138,6 +142,7 @@ Keep your tone professional, inspiring, concise, and futuristic. Use markdown.`;
               messages: [{ role: 'system', content: systemInstruction }, ...oaiHistory, { role: 'user', content: prompt }],
               stream: true,
               temperature: 0.7,
+              max_tokens: 8192,
             });
 
             for await (const chunk of stream) {

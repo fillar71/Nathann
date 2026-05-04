@@ -190,8 +190,7 @@ export default function ChatBox() {
             accumulatedText = accumulatedText.replace('[JEDA_1_DETIK]', '');
             updateMessage(modelMsgId, accumulatedText, true);
             parseStreamAndApplyFiles(accumulatedText);
-            // Jeda 1 detik
-            await new Promise(r => setTimeout(r, 1000));
+            // Delay is removed to prevent network stream timeout issues
          } else {
             updateMessage(modelMsgId, accumulatedText, true);
             parseStreamAndApplyFiles(accumulatedText);
