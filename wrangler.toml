@@ -2,3 +2,27 @@ name = "nathan-coder"
 compatibility_date = "2024-04-05"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
+
+# Enable Cloudflare KV for fast key-value storage caching
+# [[kv_namespaces]]
+# binding = "CACHE_KV"
+# id = "your_kv_namespace_id"
+
+# Enable Cloudflare D1 for SQLite Database at edge
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "nathan_coder_db"
+# database_id = "your_database_id"
+
+# Enable Cloudflare R2 for Object Storage
+# [[r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "nathan-coder-bucket"
+
+# Enable Cloudflare AI Models directly
+# [ai]
+# binding = "AI"
+
+[vars]
+# Add your safe environment variables here
+# NODE_ENV = "production"

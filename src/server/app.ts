@@ -1,9 +1,18 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { secureHeaders } from 'hono/secure-headers';
 import OpenAI from 'openai';
 import { GoogleGenAI } from '@google/genai';
 import { Mistral } from '@mistralai/mistralai';
 
 const app = new Hono();
+
+// Global Middleware for Security and CORS
+app.use('*', secureHeaders());
+app.use('*', cors({
+  origin: '*', // Customize this in production
+  allowMethods: ['POST', 'GET', 'OPTIONS'],
+}));
 
 // Helper for dynamic env selection (Node vs Cloudflare)
 const env = (c: any, key: string) => c.env?.[key] || process.env[key];
