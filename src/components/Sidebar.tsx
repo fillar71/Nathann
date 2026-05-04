@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useAgentStore, FileNode } from '../store/agentStore';
-import { Folder, File, ChevronRight, ChevronDown, Plus, FolderPlus, Edit2, Trash2, X, Check, GitCommit } from 'lucide-react';
+import { Folder, File, ChevronRight, ChevronDown, Plus, FolderPlus, Edit2, Trash2, X, Check } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
-import GitPanel from './GitPanel';
 
 export default function Sidebar() {
   const files = useAgentStore(state => state.files);
@@ -16,7 +15,6 @@ export default function Sidebar() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [addingToId, setAddingToId] = useState<{ id: string | null, type: 'file' | 'folder' } | null>(null);
-  const [activeTab, setActiveTab] = useState<'files' | 'git'>('files');
 
   const handleCreate = (parentId: string | null) => {
     if (!newName.trim() || !addingToId) return;
@@ -176,52 +174,29 @@ export default function Sidebar() {
         <span className="text-lg font-semibold tracking-tight text-white truncate">Nathan-coder</span>
       </div>
       
-      <div className="flex bg-muted/30 p-1 mx-4 mt-4 rounded-lg">
-        <button 
-          className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-md transition-colors ${activeTab === 'files' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-          onClick={() => setActiveTab('files')}
-        >
-          <File size={14} /> Files
-        </button>
-        <button 
-          className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-md transition-colors ${activeTab === 'git' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-          onClick={() => setActiveTab('git')}
-        >
-          <GitCommit size={14} /> Git
-        </button>
+      <div className="flex items-center justify-between px-4 mt-6 mb-2 shrink-0">
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Workspace</div>
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={() => { setAddingToId({ id: null, type: 'file' }); setNewName(''); }}
+            className="p-1 hover:bg-accent rounded text-muted-foreground hover:text-white transition-colors"
+            title="New File"
+          >
+            <Plus size={14} />
+          </button>
+          <button 
+            onClick={() => { setAddingToId({ id: null, type: 'folder' }); setNewName(''); }}
+            className="p-1 hover:bg-accent rounded text-muted-foreground hover:text-white transition-colors"
+            title="New Folder"
+          >
+            <FolderPlus size={14} />
+          </button>
+        </div>
       </div>
 
-      {activeTab === 'files' ? (
-        <>
-          <div className="flex items-center justify-between px-4 mt-6 mb-2 shrink-0">
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Workspace</div>
-            <div className="flex items-center gap-1">
-              <button 
-                onClick={() => { setAddingToId({ id: null, type: 'file' }); setNewName(''); }}
-                className="p-1 hover:bg-accent rounded text-muted-foreground hover:text-white transition-colors"
-                title="New File"
-              >
-                <Plus size={14} />
-              </button>
-              <button 
-                onClick={() => { setAddingToId({ id: null, type: 'folder' }); setNewName(''); }}
-                className="p-1 hover:bg-accent rounded text-muted-foreground hover:text-white transition-colors"
-                title="New Folder"
-              >
-                <FolderPlus size={14} />
-              </button>
-            </div>
-          </div>
-
-          <ScrollArea className="flex-1 py-1 px-2">
-            {renderFileTree(files)}
-          </ScrollArea>
-        </>
-      ) : (
-        <div className="flex-1 overflow-hidden mt-4">
-          <GitPanel />
-        </div>
-      )}
+      <ScrollArea className="flex-1 py-1 px-2">
+         {renderFileTree(files)}
+      </ScrollArea>
 
       <div className="p-4 mt-auto border-t border-border bg-card shrink-0">
         <div className="flex items-center gap-3 p-2 bg-background rounded-lg border border-border/50">

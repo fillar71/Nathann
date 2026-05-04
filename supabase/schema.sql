@@ -8,18 +8,6 @@ create table public.users (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Create messages table
-create table public.messages (
-  id uuid default gen_random_uuid() primary key,
-  content text not null,
-  role text not null check (role in ('user', 'assistant', 'system')),
-  user_id uuid references public.users(id) on delete cascade not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
--- Enable realtime for messages
-alter publication supabase_realtime add table public.messages;
-
 -- Note: This table is linked to the Supabase Auth system. 
 -- When a new user signs up, we want to copy their details to our public.users table.
 -- We can do this using a Supabase trigger.
@@ -53,11 +41,3 @@ create policy "Users can update own profile." on public.users
 
 -- Create a basic generic profiles table if you prefer that naming
 -- ...
-
-alter table public.messages enable row level security;
-
-create policy "Users can view their own messages." on public.messages
-  for select using (auth.uid() = user_id);
-
-create policy "Users can insert their own messages." on public.messages
-  for insert with check (auth.uid() = user_id);

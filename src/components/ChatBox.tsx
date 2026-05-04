@@ -1,7 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAgentStore, Message, FileNode } from '../store/agentStore';
-import { useAuthStore } from '../store/authStore';
-import { supabase } from '../utils/supabase/client';
 import { chatWithNathanStream } from '../services/geminiService';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -132,62 +130,8 @@ export default function ChatBox() {
   const updateMessage = useAgentStore(state => state.updateMessage);
   const snippets = useAgentStore(state => state.snippets);
   const removeSnippet = useAgentStore(state => state.removeSnippet);
-  const user = useAuthStore(state => state.user);
   
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    
-    // Fetch initial messages from Supabase
-    const fetchMessages = async () => {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true });
-        
-      if (!error && data && data.length > 0) {
-        const loadedMessages = data.map((m: any) => ({
-          id: m.id,
-          role: m.role === 'assistant' ? 'model' : m.role,
-          content: m.content
-        })) as Message[];
-        
-        loadedMessages.forEach(loadedMsg => {
-           const exists = useAgentStore.getState().messages.find(msg => msg.id === loadedMsg.id);
-           if (!exists) {
-              useAgentStore.getState().addMessage(loadedMsg);
-           }
-        });
-      }
-    };
-    
-    fetchMessages();
-    
-    // Realtime Database Webhooks
-    const subscription = supabase.channel('public:messages')
-      .on(
-         'postgres_changes',
-         { event: 'INSERT', schema: 'public', table: 'messages', filter: `user_id=eq.${user.id}` },
-         (payload) => {
-            const newMsg = payload.new;
-            const exists = useAgentStore.getState().messages.find(m => m.id === newMsg.id);
-            if (!exists) {
-               useAgentStore.getState().addMessage({
-                  id: newMsg.id,
-                  role: newMsg.role === 'assistant' ? 'model' : newMsg.role,
-                  content: newMsg.content
-               });
-            }
-         }
-      )
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(subscription);
-    }
-  }, [user]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -206,16 +150,6 @@ export default function ChatBox() {
 
     const userMsg: Message = { id: crypto.randomUUID(), role: 'user', content: input };
     addMessage(userMsg);
-    
-    if (user) {
-      supabase.from('messages').insert({
-        id: userMsg.id,
-        role: 'user',
-        content: userMsg.content,
-        user_id: user.id
-      }).catch(console.error);
-    }
-    
     setInput('');
     setIsTyping(true);
 
@@ -267,15 +201,6 @@ export default function ChatBox() {
       // Finishing stream
       updateMessage(modelMsgId, accumulatedText, false);
       parseStreamAndApplyFiles(accumulatedText);
-      
-      if (user) {
-        supabase.from('messages').insert({
-           id: modelMsgId,
-           role: 'assistant',
-           content: accumulatedText,
-           user_id: user.id
-        }).catch(console.error);
-      }
 
     } catch (error: any) {
       console.error(error);
