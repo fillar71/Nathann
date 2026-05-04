@@ -6,7 +6,11 @@ import { Mistral } from '@mistralai/mistralai';
 const app = new Hono();
 
 // Helper for dynamic env selection (Node vs Cloudflare)
-const env = (c: any, key: string) => c.env?.[key] || process.env[key];
+const env = (c: any, key: string) => {
+  if (c.env && c.env[key]) return c.env[key];
+  if (typeof process !== 'undefined' && process.env) return process.env[key];
+  return undefined;
+};
 
 app.post('/api/chat', async (c) => {
   try {
