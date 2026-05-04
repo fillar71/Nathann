@@ -34,6 +34,16 @@ export default function MainView() {
     return flattenFiles(files);
   }, [files]);
 
+  const sandpackTemplate = useMemo(() => {
+    if (Object.keys(sandpackFiles).some(path => path.includes('next.config') || path.includes('/app/page.tsx') || path.includes('/pages/index.tsx'))) {
+      return 'nextjs';
+    }
+    if (Object.keys(sandpackFiles).some(path => path.includes('vite.config'))) {
+      return 'vite-react-ts';
+    }
+    return 'react-ts';
+  }, [sandpackFiles]);
+
   if (!selectedFile) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-muted/20">
@@ -74,7 +84,7 @@ export default function MainView() {
           {Object.keys(sandpackFiles).length > 0 ? (
             <div className="w-full h-full flex flex-col">
               <Sandpack
-                template="react-ts"
+                template={sandpackTemplate as any}
                 theme="dark"
                 files={sandpackFiles}
                 customSetup={{
@@ -84,7 +94,10 @@ export default function MainView() {
                     "clsx": "^2.1.0",
                     "framer-motion": "^11.0.8",
                     "@radix-ui/react-icons": "^1.3.0",
-                    "date-fns": "^3.3.1"
+                    "date-fns": "^3.3.1",
+                    "tailwindcss": "^3.4.1",
+                    "postcss": "^8.4.35",
+                    "autoprefixer": "^10.4.18"
                   }
                 }}
                 options={{
