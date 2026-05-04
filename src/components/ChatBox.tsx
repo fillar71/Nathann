@@ -186,8 +186,16 @@ export default function ChatBox() {
       
       for await (const chunk of stream) {
          accumulatedText += chunk;
-         updateMessage(modelMsgId, accumulatedText, true);
-         parseStreamAndApplyFiles(accumulatedText);
+         if (accumulatedText.includes('[JEDA_1_DETIK]')) {
+            accumulatedText = accumulatedText.replace('[JEDA_1_DETIK]', '');
+            updateMessage(modelMsgId, accumulatedText, true);
+            parseStreamAndApplyFiles(accumulatedText);
+            // Jeda 1 detik
+            await new Promise(r => setTimeout(r, 1000));
+         } else {
+            updateMessage(modelMsgId, accumulatedText, true);
+            parseStreamAndApplyFiles(accumulatedText);
+         }
       }
       
       // Finishing stream
