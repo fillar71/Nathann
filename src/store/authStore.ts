@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../utils/supabase/client';
 
 interface AuthState {
@@ -11,12 +11,9 @@ interface AuthState {
   signOut: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  loading: true,
-  setUser: (user) => set({ user }),
-  setLoading: (loading) => set({ loading }),
-  initialize: () => {
+// Create a stable initialize function outside the store
+const createInitializeFn = (set: (state: Partial<AuthState>) => void) => {
+  return () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       set({ user: session?.user ?? null, loading: false });
     }).catch(() => {
@@ -24,10 +21,18 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ user: null, loading: false });
     });
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
       set({ user: session?.user ?? null, loading: false });
     });
-  },
+  };
+};
+
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  loading: true,
+  setUser: (user) => set({ user }),
+  setLoading: (loading) => set({ loading }),
+  initialize: createInitializeFn(set),
   signOut: async () => {
     await supabase.auth.signOut();
     set({ user: null });

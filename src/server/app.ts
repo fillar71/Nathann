@@ -4,6 +4,30 @@ import { secureHeaders } from 'hono/secure-headers';
 import OpenAI from 'openai';
 import { GoogleGenAI } from '@google/genai';
 import { Mistral } from '@mistralai/mistralai';
+import { Session } from '@supabase/supabase-js';
+
+// Define types for our request body
+interface ChatRequest {
+  provider: 'gemini' | 'mistral' | 'openai' | 'groq' | 'deepseek';
+  prompt: string;
+  history: Array<{
+    role: string;
+    parts?: Array<{ text: string }>;
+    content?: string;
+  }>;
+  modelString?: string;
+}
+
+// Define types for the context
+interface AppContext {
+  env?: Record<string, string>;
+  [key: string]: any;
+}
+
+// Helper for dynamic env selection (Node vs Cloudflare)
+const env = (c: AppContext, key: string): string => {
+  return c.env?.[key] || process.env[key] || '';
+};
 
 const app = new Hono();
 
@@ -14,14 +38,7 @@ app.use('*', cors({
   allowMethods: ['POST', 'GET', 'OPTIONS'],
 }));
 
-// Helper for dynamic env selection (Node vs Cloudflare)
-const env = (c: any, key: string) => c.env?.[key] || process.env[key];
-
-app.post('/api/chat', async (c) => {
-  try {
-    const { provider, prompt, history, modelString } = await c.req.json();
-    
-    const systemInstruction = `You are "Nathan-coder", an autonomous AI developer agent, a creative visionary, and a master Vibe Architect & Senior Full-stack Engineer.
+const systemInstruction = `You are "Nathan-coder", an autonomous AI developer agent, a creative visionary, and a master Vibe Architect & Senior Full-stack Engineer.
 Your goal is to build maximally impressive, production-ready, and beautifully designed applications, even from very short or vague user prompts.
 Whenever a user gives a brief prompt, proactively brainstorm and implement advanced features, stunning UI/UX (modern, clean, animations, dark mode), robust architecture, and seamless integrations. Do not just build the bare minimum; make it exceptional.
 
@@ -40,10 +57,14 @@ Your workflow:
 CRITICAL INSTRUCTION: You MUST complete all tasks in your plan in a single response. DO NOT stop midway. DO NOT leave tasks unfinished. Generate as much code as necessary until the final step is fully executed.
 Keep your tone professional, inspiring, concise, and futuristic. Use markdown.`;
 
+app.post('/api/chat', async (c) => {
+  try {
+    const { provider, prompt, history, modelString }: ChatRequest = await c.req.json();
+
     if (provider === 'gemini') {
       const apiKey = env(c, 'GEMINI_API_KEY');
       if (!apiKey) return c.json({ error: 'GEMINI_API_KEY missing. Periksa Secret Anda.' }, 500);
-      
+
       const ai = new GoogleGenAI({ apiKey });
 
       return new Response(new ReadableStream({
@@ -66,8 +87,9 @@ Keep your tone professional, inspiring, concise, and futuristic. Use markdown.`;
               }
             }
             controller.enqueue('data: [DONE]\n\n');
-          } catch (e: any) {
-            controller.enqueue(`data: ${JSON.stringify({ error: e.message })}\n\n`);
+          } catch (e) {
+            const error = e instanceof Error ? e.message : 'Unknown error';
+            controller.enqueue(`data: ${JSON.stringify({ error })}\n\n`);
           } finally {
             controller.close();
           }
@@ -85,9 +107,9 @@ Keep your tone professional, inspiring, concise, and futuristic. Use markdown.`;
       if (!apiKey) return c.json({ error: 'MISTRAL_API_KEY missing. Periksa Secret di Dashboard.' }, 500);
 
       const client = new Mistral({ apiKey });
-      const oaiHistory = history.map((msg: any) => ({
+      const oaiHistory = history.map((msg) => ({
         role: msg.role === 'model' ? 'assistant' : msg.role,
-        content: msg.parts ? msg.parts.map((p: any) => p.text).join('\n') : '',
+        content: msg.parts ? msg.parts.map((p) => p.text).join('\n') : msg.content || '',
       }));
 
       return new Response(new ReadableStream({
@@ -101,14 +123,17 @@ Keep your tone professional, inspiring, concise, and futuristic. Use markdown.`;
             });
 
             for await (const chunk of result) {
-              const content = (chunk as any).data?.choices?.[0]?.delta?.content || (chunk as any).choices?.[0]?.delta?.content || '';
+              const content = (chunk as any).data?.choices?.[0]?.delta?.content ||
+                            (chunk as any).choices?.[0]?.delta?.content ||
+                            '';
               if (content) {
                 controller.enqueue(`data: ${JSON.stringify({ text: content })}\n\n`);
               }
             }
             controller.enqueue('data: [DONE]\n\n');
-          } catch (e: any) {
-            controller.enqueue(`data: ${JSON.stringify({ error: e.message })}\n\n`);
+          } catch (e) {
+            const error = e instanceof Error ? e.message : 'Unknown error';
+            controller.enqueue(`data: ${JSON.stringify({ error })}\n\n`);
           } finally {
             controller.close();
           }
@@ -122,7 +147,7 @@ Keep your tone professional, inspiring, concise, and futuristic. Use markdown.`;
 
     } else {
       let apiKey = '';
-      let baseURL = undefined;
+      let baseURL: string | undefined = undefined;
       const model = modelString || 'gpt-4o';
 
       if (provider === 'openai') {
@@ -138,9 +163,9 @@ Keep your tone professional, inspiring, concise, and futuristic. Use markdown.`;
       if (!apiKey) return c.json({ error: `${provider.toUpperCase()}_API_KEY missing.` }, 500);
 
       const openai = new OpenAI({ apiKey, baseURL });
-      const oaiHistory = history.map((msg: any) => ({
+      const oaiHistory = history.map((msg) => ({
         role: msg.role === 'model' ? 'assistant' : msg.role,
-        content: msg.parts ? msg.parts.map((p: any) => p.text).join('\n') : '',
+        content: msg.parts ? msg.parts.map((p) => p.text).join('\n') : msg.content || '',
       }));
 
       return new Response(new ReadableStream({
@@ -161,8 +186,9 @@ Keep your tone professional, inspiring, concise, and futuristic. Use markdown.`;
               }
             }
             controller.enqueue('data: [DONE]\n\n');
-          } catch (e: any) {
-            controller.enqueue(`data: ${JSON.stringify({ error: e.message })}\n\n`);
+          } catch (e) {
+            const error = e instanceof Error ? e.message : 'Unknown error';
+            controller.enqueue(`data: ${JSON.stringify({ error })}\n\n`);
           } finally {
             controller.close();
           }
@@ -174,8 +200,9 @@ Keep your tone professional, inspiring, concise, and futuristic. Use markdown.`;
         }
       });
     }
-  } catch (e: any) {
-    return c.json({ error: e.message }, 500);
+  } catch (e) {
+    const error = e instanceof Error ? e.message : 'Unknown error';
+    return c.json({ error }, 500);
   }
 });
 
