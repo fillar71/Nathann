@@ -29,7 +29,7 @@ export default function App() {
       {currentView === 'landing' ? (
         <LandingPage onStart={handleStart} />
       ) : (
-        <AgentApp />
+        <AgentApp onBack={() => setCurrentView('landing')} />
       )}
       {showAuth && !user && <AuthModal onSuccess={() => { setShowAuth(false); setCurrentView('app'); }} />}
     </ThemeProvider>

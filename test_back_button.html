@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Back Button Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="container mx-auto p-4">
+        <h1 class="text-2xl font-bold mb-6">Back Button Implementation Test</h1>
+
+        <div class="bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Changes Made:</h2>
+            <ul class="list-disc list-inside space-y-2">
+                <li>Added ArrowLeft icon import to AgentApp.tsx</li>
+                <li>Modified AgentApp component to accept onBack prop</li>
+                <li>Added back button to the header section with proper styling</li>
+                <li>Updated App.tsx to pass navigation function to AgentApp</li>
+                <li>Back button calls onBack() which sets currentView to 'landing'</li>
+            </ul>
+        </div>
+
+        <div class="bg-gray-800 rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Visual Representation:</h2>
+            <div class="bg-gray-700 rounded-md p-4">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-4">
+                        <button class="p-1.5 rounded-md hover:bg-gray-600 transition-colors" title="Back to main page">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 12H5"></path>
+                                <path d="m12 19-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                        <h3 class="font-medium">Project: <span class="text-blue-400">nathan-workspace</span></h3>
+                        <span class="px-2 py-0.5 bg-green-500/10 text-green-400 text-sm font-bold rounded border border-green-500/20">Synced</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors">Deploy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 bg-gray-800 rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Implementation Details:</h2>
+            <div class="space-y-4">
+                <div>
+                    <h3 class="font-medium mb-2">1. Icon Import:</h3>
+                    <code class="bg-gray-700 p-2 rounded text-sm">import { ..., ArrowLeft } from 'lucide-react';</code>
+                </div>
+                <div>
+                    <h3 class="font-medium mb-2">2. Component Prop:</h3>
+                    <code class="bg-gray-700 p-2 rounded text-sm">export default function AgentApp({ onBack }: { onBack?: () => void })</code>
+                </div>
+                <div>
+                    <h3 class="font-medium mb-2">3. Button Implementation:</h3>
+                    <code class="bg-gray-700 p-2 rounded text-sm">
+                        {onBack && (}<br>
+                        &nbsp;&nbsp;<button onClick={onBack} className="p-1.5 rounded-md hover:bg-muted transition-colors mr-2" title="Back to main page"><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<ArrowLeft className="w-4 h-4 md:w-5 md:h-5" /><br>
+                        &nbsp;&nbsp;</button><br>
+                        )}
+                    </code>
+                </div>
+                <div>
+                    <h3 class="font-medium mb-2">4. Navigation Function:</h3>
+                    <code class="bg-gray-700 p-2 rounded text-sm"><AgentApp onBack={() => setCurrentView('landing')} /></code>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

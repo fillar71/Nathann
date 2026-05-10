@@ -3,7 +3,7 @@ import { useAgentStore } from '../store/agentStore';
 import Sidebar from './Sidebar';
 import MainView from './MainView';
 import ChatBox from './ChatBox';
-import { Files, Code2, MessageSquare, Terminal as TerminalIcon, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Files, Code2, MessageSquare, Terminal as TerminalIcon, X, ChevronUp, ChevronDown, ArrowLeft } from 'lucide-react';
 
 // Mock Terminal component
 const Terminal = ({ onClose }: { onClose?: () => void }) => {
@@ -87,7 +87,7 @@ const Terminal = ({ onClose }: { onClose?: () => void }) => {
   );
 };
 
-export default function AgentApp() {
+export default function AgentApp({ onBack }: { onBack?: () => void }) {
   const [mobileTab, setMobileTab] = useState<'files' | 'editor' | 'chat' | 'run'>('chat');
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
 
@@ -106,6 +106,15 @@ export default function AgentApp() {
           {/* Header */}
           <header className="h-14 md:h-16 border-b border-border flex items-center justify-between px-4 md:px-8 bg-background shrink-0">
             <div className="flex items-center gap-2 md:gap-4">
+              {onBack && (
+                <button
+                  onClick={onBack}
+                  className="p-1.5 rounded-md hover:bg-muted transition-colors mr-2"
+                  title="Back to main page"
+                >
+                  <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
+                </button>
+              )}
               <h2 className="font-medium text-xs md:text-sm truncate">Project: <span className="text-primary">nathan-workspace</span></h2>
               <span className="hidden sm:inline-block px-2 py-0.5 bg-green-500/10 text-green-400 text-[10px] font-bold rounded border border-green-500/20 uppercase">Synced</span>
             </div>
