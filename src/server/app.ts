@@ -59,7 +59,22 @@ Keep your tone professional, inspiring, concise, and futuristic. Use markdown.`;
 
 app.post('/api/chat', async (c) => {
   try {
-    const { provider, prompt, history, modelString }: ChatRequest = await c.req.json();
+    if (!c.req.header('Content-Type')?.includes('application/json')) {
+      return c.json({ error: 'Content-Type must be application/json' }, 400);
+    }
+
+    let requestBody;
+    try {
+      requestBody = await c.req.json();
+    } catch (parseError) {
+      return c.json({ error: 'Invalid JSON format in request body' }, 400);
+    }
+
+    const { provider, prompt, history, modelString }: ChatRequest = requestBody;
+
+    if (!provider || !prompt) {
+      return c.json({ error: 'Missing required fields: provider and prompt are required' }, 400);
+    }
 
     if (provider === 'gemini') {
       const apiKey = env(c, 'GEMINI_API_KEY');

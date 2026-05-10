@@ -16,13 +16,19 @@ const createInitializeFn = (set: (state: Partial<AuthState>) => void) => {
   return () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       set({ user: session?.user ?? null, loading: false });
-    }).catch(() => {
+    }).catch((error) => {
+      console.error('Supabase initialization error:', error);
       // Resolve cleanly even if the connection fails due to invalid keys
       set({ user: null, loading: false });
     });
 
     supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
-      set({ user: session?.user ?? null, loading: false });
+      try {
+        set({ user: session?.user ?? null, loading: false });
+      } catch (error) {
+        console.error('Auth state change error:', error);
+        set({ user: null, loading: false });
+      }
     });
   };
 };
