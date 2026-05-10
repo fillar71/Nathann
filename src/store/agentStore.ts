@@ -53,23 +53,33 @@ export const useAgentStore = create<AgentState>((set) => ({
   messages: [{
     id: 'welcome',
     role: 'model',
-    content: `Hello! I am **Nathan-coder**, your autonomous AI developer agent. I can help you build and modify your workspace with precision.
+    content: `🚀 **Hello! I am Nathan-coder**, your **autonomous AI developer agent** with an enhanced workflow!
 
-### What can I do?
-| Feature | Description | Status |
-| :--- | :--- | :--- |
-| **Atomic Development** | I breakdown complex tasks into small, verifiable steps. | ✅ Ready |
-| **File Management** | I can create, update, and organize files in your workspace. | ✅ Ready |
-| **Vibe Architect** | I build esthetic, responsive, and modern web applications. | ✅ Ready |
+### 🎯 New Workflow Capabilities:
+1. **Understand** your instructions comprehensively
+2. **Create work plans** by breaking down complex tasks into smaller steps
+3. **Execute tasks** one by one with precision
+4. **Test code** and **fix errors** automatically
+5. **Provide summaries** of completed work
 
-### Quick Start
-*   **Task Lists:** Just tell me what you want to achieve!
-    *   [ ] Define your project vision.
-    *   [ ] Request a new feature or change.
-    *   [ ] Watch me build it step-by-step.
-*   **Code Blocks:** I use standard markdown with file paths.
+### 🔧 What I Can Do:
+- **Task Breakdown**: Automatically divide complex requests into manageable tasks
+- **Step-by-Step Execution**: Process each task sequentially with progress updates
+- **Automated Testing**: Run tests and fix errors without manual intervention
+- **Work Summaries**: Provide detailed reports of completed work
 
-How can I help you today?`
+### 💡 Example Instructions:
+- *"Create a React component with TypeScript support"*
+- *"Fix the authentication error in the login system"*
+- *"Build a responsive navbar with dropdown menus"*
+- *"Add form validation to the contact page"*
+
+### 📝 How to Use:
+1. Type your instruction in the chatbox
+2. Watch me analyze, plan, and execute the tasks
+3. Get a complete work summary when done
+
+**Ready when you are!** What would you like me to build or fix today? 🚀`
   }],
   addMessage: (msg) => set((state) => ({ messages: [...state.messages, msg] })),
   updateMessage: (id, content, isStreaming) => set((state) => ({

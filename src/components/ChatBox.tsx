@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAgentStore, Message, FileNode } from '../store/agentStore';
 import { chatWithNathanStream } from '../services/geminiService';
+import { agentService } from '../services/agentService';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { ScrollArea } from './ui/scroll-area';
@@ -157,46 +158,16 @@ export default function ChatBox() {
     addMessage({ id: modelMsgId, role: 'model', content: '', isStreaming: true });
 
     try {
-      const rawHistory = messages
-        .filter((m) => m.id !== 'welcome' && m.content.trim() !== '')
-        .map((m) => ({
-          role: m.role,
-          parts: [{ text: m.content }]
-        }));
-        
-      const history: any[] = [];
-      for (const msg of rawHistory) {
-        if (history.length === 0) {
-          if (msg.role === 'user') history.push(msg);
-        } else {
-          if (history[history.length - 1].role !== msg.role) {
-            history.push(msg);
-          } else {
-            history[history.length - 1].parts[0].text += '\n\n' + msg.parts[0].text;
-          }
-        }
-      }
-      
-      if (history.length > 0 && history[history.length - 1].role === 'user') {
-        history.push({ role: 'model', parts: [{ text: 'Understood.' }] });
-      }
+      // Use the new agent service instead of external AI
+      const stream = agentService.processInstruction(input);
 
       let accumulatedText = "";
-      const stream = chatWithNathanStream(userMsg.content, history, selectedProvider.id, selectedModel);
-      
       for await (const chunk of stream) {
-         accumulatedText += chunk;
-         if (accumulatedText.includes('[JEDA_1_DETIK]')) {
-            accumulatedText = accumulatedText.replace('[JEDA_1_DETIK]', '');
-            updateMessage(modelMsgId, accumulatedText, true);
-            parseStreamAndApplyFiles(accumulatedText);
-            // Delay is removed to prevent network stream timeout issues
-         } else {
-            updateMessage(modelMsgId, accumulatedText, true);
-            parseStreamAndApplyFiles(accumulatedText);
-         }
+        accumulatedText += chunk;
+        updateMessage(modelMsgId, accumulatedText, true);
+        parseStreamAndApplyFiles(accumulatedText);
       }
-      
+
       // Finishing stream
       updateMessage(modelMsgId, accumulatedText, false);
       parseStreamAndApplyFiles(accumulatedText);
