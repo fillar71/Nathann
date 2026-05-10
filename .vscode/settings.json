@@ -1,0 +1,5 @@
+{
+    "git.addAICoAuthor": "all",
+    "git.allowForcePush": true,
+    "git.autofetch": "all"
+}
